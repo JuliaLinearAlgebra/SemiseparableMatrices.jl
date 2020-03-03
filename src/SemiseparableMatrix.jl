@@ -24,7 +24,7 @@ struct SemiseparableMatrix{T} <: AbstractMatrix{T}
     end
 end
 
-function Base.convert(::Type{Matrix}, S::SemiseparableMatrix)
+function convert(::Type{Matrix}, S::SemiseparableMatrix)
     return triu(Matrix(S.U), S.bu+1) + tril(Matrix(S.L), -S.bl-1)
 end
 
