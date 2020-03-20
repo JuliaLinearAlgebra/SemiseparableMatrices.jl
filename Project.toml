@@ -6,13 +6,13 @@ version = "0.1.0"
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-LowRankApprox = "898213cb-b102-5a47-900c-97e73b919f73"
+MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
 [compat]
 ArrayLayouts = "0.1.5"
 BandedMatrices = "0.14.3"
-LowRankApprox = "0.4"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
