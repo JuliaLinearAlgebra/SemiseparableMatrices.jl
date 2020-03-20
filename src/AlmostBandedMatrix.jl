@@ -2,19 +2,24 @@
 
 
 
-struct AlmostBandedMatrix{T} <: AbstractMatrix{T}
-    bands::BandedMatrix{T}
-    fill::LowRankMatrix{T}
-    function AlmostBandedMatrix{T}(bands::BandedMatrix{T}, fill::LowRankMatrix{T}) where T
-        if size(bands) ≠ size(fill)
-            error("Data and fill must be compatible size")
-        end
-        new{T}(bands,fill)
+struct AlmostBandedMatrix{T,D,A,B,R} <: AbstractMatrix{T}
+    bands::BandedMatrix{T,D,R}
+    fill::LowRankMatrix{T,A,B}
+    AlmostBandedMatrix{T,D,A,B,R}(bands, fill) where {T,D,A,B,R} = new{T,D,A,B,R}(bands,fill)
+end
+
+function AlmostBandedMatrix{T}(bands::BandedMatrix{T,D,R}, fill::LowRankMatrix{T,A,B}) where {T,D,A,B,R}
+    if size(bands) ≠ size(fill)
+        error("Data and fill must be compatible size")
     end
+    AlmostBandedMatrix{T,D,A,B,R}(bands,fill)
 end
 
 AlmostBandedMatrix(bands::BandedMatrix, fill::LowRankMatrix) =
     AlmostBandedMatrix{promote_type(eltype(bands),eltype(fill))}(bands,fill)
+
+AlmostBandedMatrix(bands::AbstractMatrix, fill::AbstractMatrix) = 
+    AlmostBandedMatrix(BandedMatrix(bands), LowRankMatrix(fill))
 
 AlmostBandedMatrix{T}(::UndefInitializer, nm::NTuple{2,Integer}, lu::NTuple{2,Integer}, r::Integer) where {T} =
     AlmostBandedMatrix(BandedMatrix{T}(undef,nm,lu), LowRankMatrix{T}(undef,nm,r))
@@ -29,7 +34,7 @@ function AlmostBandedMatrix{T}(A::AlmostBandedMatrix, (l,u)::NTuple{2,Integer}) 
     AlmostBandedMatrix{T}(B, copy(L))
 end
 
-AlmostBandedMatrix(A::AlmostBandedMatrix, (l,u)::NTuple{2,Integer}) where T = AlmostBandedMatrix{T}(A, (l,u))
+AlmostBandedMatrix(A::AlmostBandedMatrix{T}, (l,u)::NTuple{2,Integer}) where T = AlmostBandedMatrix{T}(A, (l,u))
 
 
 
@@ -38,6 +43,8 @@ AlmostBandedMatrix{T}(Z::Zeros, lu::NTuple{2,Integer}, r::Integer) where {T} =
 
 AlmostBandedMatrix(Z::AbstractMatrix, lu::NTuple{2,Integer}, r::Integer) =
     AlmostBandedMatrix{eltype(Z)}(Z, lu, r)
+
+AlmostBandedMatrix(A::AbstractMatrix) = AlmostBandedMatrix(bandpart(A), fillpart(A))    
 
 for MAT in (:AlmostBandedMatrix, :AbstractMatrix, :AbstractArray)
     @eval convert(::Type{$MAT{T}}, A::AlmostBandedMatrix) where {T} =
@@ -53,7 +60,7 @@ Base.IndexStyle(::Type{ABM}) where {ABM<:AlmostBandedMatrix} =
     IndexCartesian()
 
 
-function getindex(B::AlmostBandedMatrix,k::Integer,j::Integer)
+function getindex(B::AlmostBandedMatrix, k::Integer, j::Integer)
     if j > k + bandwidth(B.bands,2)
         B.fill[k,j]
     else
@@ -61,10 +68,40 @@ function getindex(B::AlmostBandedMatrix,k::Integer,j::Integer)
     end
 end
 
+@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::Colon) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::AbstractUnitRange) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::AbstractUnitRange, jr::Colon) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::AbstractUnitRange, jr::AbstractUnitRange) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::AbstractVector, jr::AbstractVector) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::AbstractVector) = lazy_getindex(A, kr, jr)
+@inline getindex(A::AlmostBandedMatrix, kr::AbstractVector, jr::Colon) = lazy_getindex(A, kr, jr)
+
 # can only change the bands, not the fill
 function setindex!(B::AlmostBandedMatrix, v, k::Integer, j::Integer)
+    l,u = bandwidths(bandpart(B))
+    if j-k ≤ u
         B.bands[k,j] = v
+    else
+        B.fill[k,j] = v
+    end
+    B
 end
+
+function triu!(A::AlmostBandedMatrix) 
+    triu!(bandpart(A))
+    A
+end
+
+
+struct AlmostBandedLayout <: MemoryLayout end
+MemoryLayout(::Type{<:AlmostBandedMatrix}) = AlmostBandedLayout()
+sublayout(::AlmostBandedLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractUnitRange{Int}}}) = 
+    AlmostBandedLayout()
+
+sub_materialize(::AlmostBandedLayout, V) = AlmostBandedMatrix(V)
+
+bandpart(V::SubArray) = view(bandpart(parent(V)), parentindices(V)...)
+fillpart(V::SubArray) = view(fillpart(parent(V)), parentindices(V)...)
 
 ###
 # QR
@@ -74,7 +111,10 @@ qr(A::AlmostBandedMatrix) = almostbanded_qr(A)
 qr!(A::AlmostBandedMatrix) = almostbanded_qr!(A)
 
 almostbanded_qr(A) = _almostbanded_qr(axes(A), A)
-_almostbanded_qr(_, A) = qr!(AlmostBandedMatrix{float(eltype(A))}(A, (bandwidth(A,1),bandwidth(A,1)+bandwidth(A,2))))
+function _almostbanded_qr(_, A) 
+    l,u = bandwidths(bandpart(A))
+    qr!(AlmostBandedMatrix{float(eltype(A))}(A, (l,l+u)))
+end
 
 
 function _almostbanded_qr!(A::AlmostBandedMatrix{T} , τ::AbstractVector{T}) where T
@@ -119,5 +159,4 @@ function almostbanded_qr!(R::AbstractMatrix{T}, τ) where T
  
  almostbanded_qr!(R::AbstractMatrix{T}) where T = almostbanded_qr!(R, zeros(T, min(size(R)...)))
  
-
-
+ getQ(F::QR{<:Any,<:AlmostBandedMatrix}) = QRPackedQ(bandpart(F.factors), F.τ)
