@@ -3,10 +3,10 @@ using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizati
 
 import Base: size, getindex, setindex!, convert
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR
-import LinearAlgebra: qr, qr!, lmul!, rmul!, triu!
+import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize
 import BandedMatrices: _banded_qr!
 import LazyArrays: arguments
-import ArrayLayouts: MemoryLayout, sublayout, sub_materialize
+import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, @lazyldiv, MatLdivVec, materialize!, triangularlayout, triangulardata
 
 
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix

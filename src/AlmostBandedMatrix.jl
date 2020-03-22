@@ -107,6 +107,9 @@ fillpart(V::SubArray) = view(fillpart(parent(V)), parentindices(V)...)
 # QR
 ##
 
+@lazyldiv AlmostBandedMatrix
+
+factorize(A::AlmostBandedMatrix) = qr(A)
 qr(A::AlmostBandedMatrix) = almostbanded_qr(A)
 qr!(A::AlmostBandedMatrix) = almostbanded_qr!(A)
 
@@ -157,6 +160,91 @@ function almostbanded_qr!(R::AbstractMatrix{T}, τ) where T
     QR(R, τ)
  end
  
- almostbanded_qr!(R::AbstractMatrix{T}) where T = almostbanded_qr!(R, zeros(T, min(size(R)...)))
- 
- getQ(F::QR{<:Any,<:AlmostBandedMatrix}) = QRPackedQ(bandpart(F.factors), F.τ)
+almostbanded_qr!(R::AbstractMatrix{T}) where T = almostbanded_qr!(R, zeros(T, min(size(R)...)))
+
+getQ(F::QR{<:Any,<:AlmostBandedMatrix}) = LinearAlgebra.QRPackedQ(bandpart(F.factors), F.τ)
+getR(F::QR{<:Any,<:AlmostBandedMatrix}) = UpperTriangular(F.factors)
+
+function ldiv!(A::QR{<:Any,<:AlmostBandedMatrix}, B::AbstractVector)
+    R = A.factors
+    lmul!(adjoint(A.Q), B)
+    B .= Ldiv(UpperTriangular(R), B)
+    B
+end
+
+function ldiv!(A::QR{<:Any,<:AlmostBandedMatrix}, B::AbstractMatrix)
+    R = A.factors
+    lmul!(adjoint(A.Q), B)
+    B .= Ldiv(UpperTriangular(R), B)
+    B
+end
+
+
+###
+# UpperTriangular ldiv!
+##
+
+triangularlayout(::Type{Tri}, ::ML) where {Tri,ML<:AlmostBandedLayout} = Tri{ML}()
+
+@lazyldiv UpperTriangular{T, <:AlmostBandedMatrix{T}} where T
+@lazyldiv UnitUpperTriangular{T, <:AlmostBandedMatrix{T}} where T
+@lazyldiv LowerTriangular{T, <:AlmostBandedMatrix{T}} where T
+@lazyldiv UnitLowerTriangular{T, <:AlmostBandedMatrix{T}} where T
+
+
+function _almostbanded_upper_ldiv!(Tri, R::AbstractMatrix, b::AbstractVector{T}, buffer) where T
+    B = R.bands
+    L = R.fill
+    U,V = arguments(L)
+    fill!(buffer, zero(T))
+
+    l,u = bandwidths(B)
+    k = n = size(R,2)
+
+    while k > 0
+        kr = max(1,k-u):k
+        jr1 = k+1:k+u+1
+        jr2 = k+u+2:k+2u+2
+        bv = view(b,kr)
+        if jr2[1] < n
+            muladd!(one(T),view(V,:,jr2),view(b,jr2),one(T),buffer)
+            muladd!(-one(T),view(U,kr,:),buffer,one(T),bv)
+        end
+        if jr1[1] < n
+            muladd!(-one(T),view(R,kr,jr1),view(b,jr1),one(T),bv)
+        end
+        materialize!(Ldiv(Tri(view(R.bands,kr,kr)), bv))
+        k = kr[1]-1
+    end
+    b
+end
+
+@inline function materialize!(M::MatLdivVec{TriangularLayout{'U','N',AlmostBandedLayout}})
+    R,x = M.A,M.B
+    A = triangulardata(R)
+    r = size(arguments(fillpart(A))[1],2)
+    _almostbanded_upper_ldiv!(UpperTriangular, A, x, Vector{eltype(M)}(undef, r))
+    x
+end
+
+@inline function materialize!(M::MatLdivVec{TriangularLayout{'U','U',AlmostBandedLayout}})
+    R,x = M.A,M.B
+    A = triangulardata(R)
+    r = size(arguments(fillpart(A))[1],2)
+    _almostbanded_upper_ldiv!(UnitUpperTriangular, A, x, Vector{eltype(M)}(undef, r))
+    x
+end
+
+@inline function materialize!(M::MatLdivVec{TriangularLayout{'L','N',AlmostBandedLayout}})
+    R,x = M.A,M.B
+    A = triangulardata(R)
+    materialize!(Ldiv(LowerTriangular(bandpart(A)),x))
+    x
+end
+
+@inline function materialize!(M::MatLdivVec{TriangularLayout{'L','U',AlmostBandedLayout}})
+    R,x = M.A,M.B
+    A = triangulardata(R)
+    materialize!(Ldiv(UnitLowerTriangular(bandpart(A)),x))
+    x
+end
