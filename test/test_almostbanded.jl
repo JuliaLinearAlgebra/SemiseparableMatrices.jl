@@ -1,7 +1,9 @@
-using SemiseparableMatrices, BandedMatrices, Test, LinearAlgebra, MatrixFactorizations, LazyArrays, ArrayLayouts
+using SemiseparableMatrices, BandedMatrices, Test, LinearAlgebra, MatrixFactorizations, LazyArrays, ArrayLayouts, Random
 import BandedMatrices: _BandedMatrix, _banded_qr!
 import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout
 import MatrixFactorizations: QRPackedQ
+
+Random.seed!(0)
 
 @testset "AlmostBandedMatrix" begin
     @testset "Slices" begin
@@ -33,7 +35,7 @@ import MatrixFactorizations: QRPackedQ
         Ā = AlmostBandedMatrix(A,(1,2))
         @test A == Ā == B + triu(Matrix(L),2)
         F = qr(A)
-        @test F.Q isa QRPackedQ{Float64,<:BandedMatrix}
+        @test F.Q isa LinearAlgebra.QRPackedQ{Float64,<:BandedMatrix}
         @test F.R isa UpperTriangular{Float64,<:AlmostBandedMatrix}
         @test F.Q' * A ≈ F.R
         @test A == Ã
@@ -43,7 +45,7 @@ import MatrixFactorizations: QRPackedQ
         @inferred(SemiseparableMatrices._almostbanded_qr!(Ā,τ))
 
         
-
+        b = randn(n)
         @test A \ b ≈ Matrix(A) \ b 
         @test all(A \ b .=== F \ b .=== F.R \ (F.Q'*b)) 
     end
