@@ -9,7 +9,7 @@ import LazyArrays: arguments
 import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, @lazyldiv, MatLdivVec, materialize!, triangularlayout, triangulardata
 
 
-export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix
+export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray
 
 const LowRankMatrix{T,A,B} = MulMatrix{T,Tuple{A,B}}
 LowRankMatrix(A::AbstractArray, B::AbstractArray) = ApplyMatrix(*, A, B)

@@ -10,19 +10,25 @@
 
 ## Constructors
 
-struct SemiseparableMatrix{T} <: AbstractMatrix{T}
-    L::LowRankMatrix{T}
-    U::LowRankMatrix{T}
+struct SemiseparableMatrix{T,LL<:AbstractMatrix{T},UU<:AbstractMatrix{T}} <: AbstractMatrix{T}
+    L::LL
+    U::UU
     bl::Int
     bu::Int
 
-    function SemiseparableMatrix(L::LowRankMatrix{T}, U::LowRankMatrix{T}, bl, bu) where T
+    function SemiseparableMatrix{T,LL,UU}(L::LL, U::UU, bl::Integer, bu::Integer) where {T,LL<:AbstractMatrix{T},UU<:AbstractMatrix{T}}
         Lm, Ln = size(L)
         Um, Un = size(U)
-        @assert Um == Un == Lm == Ln && Un >= bu+1 && Lm >= bl+1
-        new{T}(L, U, bl, bu)
+        if !(Um == Un == Lm == Ln && Un >= bu+1 && Lm >= bl+1)
+            throw(ArgumentError())
+        end
+        new{T,LL,UU}(L, U, bl, bu)
     end
 end
+
+SemiseparableMatrix(A::LL, B::UU, bl::Integer, bu::Integer) where {T,LL<:AbstractMatrix{T},UU<:AbstractMatrix{T}} = 
+    SemiseparableMatrix{T,LL,UU}(A, B, bl, bu)
+
 
 function convert(::Type{Matrix}, S::SemiseparableMatrix)
     return triu(Matrix(S.U), S.bu+1) + tril(Matrix(S.L), -S.bl-1)
