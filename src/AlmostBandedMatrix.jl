@@ -2,7 +2,7 @@
 
 
 
-struct AlmostBandedMatrix{T,D,A,B,R} <: AbstractMatrix{T}
+struct AlmostBandedMatrix{T,D,A,B,R} <: LayoutMatrix{T}
     bands::BandedMatrix{T,D,R}
     fill::LowRankMatrix{T,A,B}
     AlmostBandedMatrix{T,D,A,B,R}(bands, fill) where {T,D,A,B,R} = new{T,D,A,B,R}(bands,fill)
@@ -68,14 +68,6 @@ function getindex(B::AlmostBandedMatrix, k::Integer, j::Integer)
     end
 end
 
-@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::Colon) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::AbstractUnitRange) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::AbstractUnitRange, jr::Colon) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::AbstractUnitRange, jr::AbstractUnitRange) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::AbstractVector, jr::AbstractVector) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::Colon, jr::AbstractVector) = lazy_getindex(A, kr, jr)
-@inline getindex(A::AlmostBandedMatrix, kr::AbstractVector, jr::Colon) = lazy_getindex(A, kr, jr)
-
 # can only change the bands, not the fill
 function setindex!(B::AlmostBandedMatrix, v, k::Integer, j::Integer)
     l,u = bandwidths(bandpart(B))
@@ -106,8 +98,6 @@ fillpart(V::SubArray) = view(fillpart(parent(V)), parentindices(V)...)
 ###
 # QR
 ##
-
-@lazyldiv AlmostBandedMatrix
 
 factorize(A::AlmostBandedMatrix) = qr(A)
 qr(A::AlmostBandedMatrix) = almostbanded_qr(A)
@@ -186,12 +176,6 @@ end
 
 triangularlayout(::Type{Tri}, ::ML) where {Tri,ML<:AlmostBandedLayout} = Tri{ML}()
 
-@lazyldiv UpperTriangular{T, <:AlmostBandedMatrix{T}} where T
-@lazyldiv UnitUpperTriangular{T, <:AlmostBandedMatrix{T}} where T
-@lazyldiv LowerTriangular{T, <:AlmostBandedMatrix{T}} where T
-@lazyldiv UnitLowerTriangular{T, <:AlmostBandedMatrix{T}} where T
-
-
 function _almostbanded_upper_ldiv!(Tri, R::AbstractMatrix, b::AbstractVector{T}, buffer) where T
     B = R.bands
     L = R.fill
@@ -248,3 +232,11 @@ end
     materialize!(Ldiv(UnitLowerTriangular(bandpart(A)),x))
     x
 end
+
+
+###
+# VcatBanded
+###
+
+applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = AlmostBandedLayout()
+

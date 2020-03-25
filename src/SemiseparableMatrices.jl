@@ -5,8 +5,8 @@ import Base: size, getindex, setindex!, convert
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR
 import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize
 import BandedMatrices: _banded_qr!
-import LazyArrays: arguments
-import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, @lazyldiv, MatLdivVec, materialize!, triangularlayout, triangulardata
+import LazyArrays: arguments, applylayout
+import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, materialize!, triangularlayout, triangulardata
 
 
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray
