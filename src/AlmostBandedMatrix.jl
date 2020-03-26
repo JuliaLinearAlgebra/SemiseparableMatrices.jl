@@ -1,5 +1,6 @@
 ## AlmostBandedMatrix
 
+struct AlmostBandedLayout <: MemoryLayout end
 
 
 struct AlmostBandedMatrix{T,D,A,B,R} <: LayoutMatrix{T}
@@ -24,6 +25,7 @@ AlmostBandedMatrix(bands::AbstractMatrix, fill::AbstractMatrix) =
 AlmostBandedMatrix{T}(::UndefInitializer, nm::NTuple{2,Integer}, lu::NTuple{2,Integer}, r::Integer) where {T} =
     AlmostBandedMatrix(BandedMatrix{T}(undef,nm,lu), LowRankMatrix{T}(undef,nm,r))
 
+
 function AlmostBandedMatrix{T}(A::AlmostBandedMatrix, (l,u)::NTuple{2,Integer}) where T
     B_in,L = bandpart(A),fillpart(A)
     l_in,u_in = bandwidths(B_in)
@@ -44,7 +46,11 @@ AlmostBandedMatrix{T}(Z::Zeros, lu::NTuple{2,Integer}, r::Integer) where {T} =
 AlmostBandedMatrix(Z::AbstractMatrix, lu::NTuple{2,Integer}, r::Integer) =
     AlmostBandedMatrix{eltype(Z)}(Z, lu, r)
 
-AlmostBandedMatrix(A::AbstractMatrix) = AlmostBandedMatrix(bandpart(A), fillpart(A))    
+
+AlmostBandedMatrix(A::AbstractMatrix{T}) where T = 
+    copyto!(AlmostBandedMatrix{T}(undef, size(A), almostbandwidths(A), almostbandedrank(A)), A)
+
+MemoryLayout(::Type{<:AlmostBandedMatrix}) = AlmostBandedLayout()
 
 for MAT in (:AlmostBandedMatrix, :AbstractMatrix, :AbstractArray)
     @eval convert(::Type{$MAT{T}}, A::AlmostBandedMatrix) where {T} =
@@ -54,6 +60,11 @@ end
 
 bandpart(A::AlmostBandedMatrix) = A.bands
 fillpart(A::AlmostBandedMatrix) = A.fill
+
+almostbandwidths(_, A) = bandwidths(bandpart(A))    
+almostbandedrank(_, A) = separablerank(fillpart(A))
+almostbandwidths(A) = almostbandwidths(MemoryLayout(typeof(A)), A)
+almostbandedrank(A) = almostbandedrank(MemoryLayout(typeof(A)), A)
 
 size(A::AlmostBandedMatrix) = size(A.bands)
 Base.IndexStyle(::Type{ABM}) where {ABM<:AlmostBandedMatrix} =
@@ -85,8 +96,10 @@ function triu!(A::AlmostBandedMatrix)
 end
 
 
-struct AlmostBandedLayout <: MemoryLayout end
-MemoryLayout(::Type{<:AlmostBandedMatrix}) = AlmostBandedLayout()
+###
+# SubArray
+###
+
 sublayout(::AlmostBandedLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractUnitRange{Int}}}) = 
     AlmostBandedLayout()
 
@@ -238,5 +251,45 @@ end
 # VcatBanded
 ###
 
-applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = AlmostBandedLayout()
+struct VcatAlmostBandedLayout <: MemoryLayout end
+applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
+sublayout(::VcatAlmostBandedLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractUnitRange{Int}}}) = 
+    VcatAlmostBandedLayout()
 
+arguments(::VcatAlmostBandedLayout, A) = arguments(ApplyLayout{typeof(vcat)}(), A)
+
+function almostbandwidths(::VcatAlmostBandedLayout, A)
+    a,b = arguments(A)
+    m̃ = size(a,1)
+    l,u = bandwidths(b)
+    (l+m̃,u-m̃)
+end
+
+almostbandedrank(::VcatAlmostBandedLayout, A) = size(first(arguments(A)),1)
+
+function almostbanded_copyto!(dest, A::AbstractMatrix{T}, ::VcatAlmostBandedLayout) where T
+    m,n = size(dest)
+    (m,n) == size(A) || throw(DimensionMismatch())
+    a,b = arguments(A)
+    r = size(a,1)
+    bands = bandpart(dest)
+    U,V = arguments(fillpart(dest))
+    U[1:r,1:r] = Eye{T}(r)
+    zero!(view(U,r+1:n,:))
+    copyto!(V, a)
+    
+    bands[r+1:end,:] .= b
+    for j = 1:bandwidth(b,2)
+        kr = colsupport(bands,j) ∩ (1:r)
+        bands[kr,j] .= view(a,kr,j)
+    end
+
+    dest
+end
+
+copyto!(dest::AlmostBandedMatrix, V::AbstractMatrix) = almostbanded_copyto!(dest, V, MemoryLayout(typeof(V)))
+copyto!(dest::AlmostBandedMatrix, V::SubArray{T,2,<:Vcat{T,2}}) where T = almostbanded_copyto!(dest, V, MemoryLayout(typeof(V)))
+
+function _cache(::VcatAlmostBandedLayout, A::AbstractArray{T}) where T
+    CachedArray(AlmostBandedMatrix{T}(undef, (0,0), almostbandwidths(A), almostbandedrank(A)), A)
+end

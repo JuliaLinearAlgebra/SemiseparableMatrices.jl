@@ -1,11 +1,48 @@
 using SemiseparableMatrices, BandedMatrices, Test, LinearAlgebra, MatrixFactorizations, LazyArrays, ArrayLayouts, Random
 import BandedMatrices: _BandedMatrix, _banded_qr!
-import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout
+import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout, VcatAlmostBandedLayout
 import MatrixFactorizations: QRPackedQ
 
 Random.seed!(0)
 
 @testset "AlmostBandedMatrix" begin
+    @testset "Constructors" begin
+        A = AlmostBandedMatrix{Float64}(undef, (10,11), (2,1), 2)
+        A[1,1] = 2
+        @test A[1,1] == 2
+        A[4,1] = 0
+        @test A[4,1] == 0.0
+        @test_throws BandError A[4,1] = 2
+        @test_throws ErrorException A[1,3] = 5
+        @test almostbandwidths(A) == (2,1)
+        @test almostbandedrank(A) == 2
+
+        n = 10
+        A = Vcat(Ones(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1)), (n-1,n)))
+        @test MemoryLayout(typeof(A)) == VcatAlmostBandedLayout()
+        @test almostbandwidths(A) == (1,0)
+        @test almostbandedrank(A) == 1
+
+        dest = AlmostBandedMatrix{Float64}(undef, size(A), almostbandwidths(A), almostbandedrank(A))
+        copyto!(dest, A)
+        @test dest == A
+
+        @test AlmostBandedMatrix(A) == Matrix(A)
+
+        V = view(A,1:5,2:5)
+        @test MemoryLayout(typeof(V)) == VcatAlmostBandedLayout()
+        @test almostbandwidths(V) == (2,-1)
+        @test almostbandedrank(V) == 1
+
+        @test AlmostBandedMatrix(V) == Matrix(V) == V
+
+        C = cache(A)
+        @test C isa LazyArrays.CachedMatrix{Float64,<:AlmostBandedMatrix}
+
+        A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        @test AlmostBandedMatrix(A) == Matrix(A)
+    end
+
     @testset "Slices" begin
         n = 80
         A = AlmostBandedMatrix(BandedMatrix(fill(2.0,n,n),(1,1)), LowRankMatrix(fill(3.0,n), ones(1,n)))

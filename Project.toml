@@ -15,7 +15,7 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 [compat]
 ArrayLayouts = "0.2"
 BandedMatrices = "0.15"
-LazyArrays = "0.15.1"
+LazyArrays = "0.16"
 LazyBandedMatrices = "0.2.2"
 MatrixFactorizations = "0.3"
 
