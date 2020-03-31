@@ -1,7 +1,8 @@
 using SemiseparableMatrices, BandedMatrices, Test, LinearAlgebra, MatrixFactorizations, LazyArrays, ArrayLayouts, Random
 import BandedMatrices: _BandedMatrix, _banded_qr!
-import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout, VcatAlmostBandedLayout
+import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout, VcatAlmostBandedLayout, resizedata!, _almostbanded_qr!
 import MatrixFactorizations: QRPackedQ
+import LazyArrays: CachedArray
 
 Random.seed!(0)
 
@@ -16,7 +17,9 @@ Random.seed!(0)
         @test_throws ErrorException A[1,3] = 5
         @test almostbandwidths(A) == (2,1)
         @test almostbandedrank(A) == 2
-
+    end
+    
+    @testset "copyto!" begin
         n = 10
         A = Vcat(Ones(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1)), (n-1,n)))
         @test MemoryLayout(typeof(A)) == VcatAlmostBandedLayout()
@@ -25,7 +28,11 @@ Random.seed!(0)
 
         dest = AlmostBandedMatrix{Float64}(undef, size(A), almostbandwidths(A), almostbandedrank(A))
         copyto!(dest, A)
-        @test dest == A
+        @test dest == A 
+
+        dest = AlmostBandedMatrix{Float64}(undef, (1,2), (1,1), 1)
+        copyto!(dest, view(A,1:1,1:2))
+        @test dest == A[1:1,1:2]
 
         @test AlmostBandedMatrix(A) == Matrix(A)
 
@@ -33,14 +40,47 @@ Random.seed!(0)
         @test MemoryLayout(typeof(V)) == VcatAlmostBandedLayout()
         @test almostbandwidths(V) == (2,-1)
         @test almostbandedrank(V) == 1
+        @test A[1:5,2:5] isa AlmostBandedMatrix
 
-        @test AlmostBandedMatrix(V) == Matrix(V) == V
+        @test AlmostBandedMatrix(V) == Matrix(V) == V == A[1:5,2:5]
 
-        C = cache(A)
-        @test C isa LazyArrays.CachedMatrix{Float64,<:AlmostBandedMatrix}
+        
+
+        V = view(A,Base.OneTo(5),Base.OneTo(5))
+        @test AlmostBandedMatrix(V) == V == Matrix(V)
+
+        V = view(AlmostBandedMatrix(A),1:5,2:5)
+        @test MemoryLayout(typeof(V)) == AlmostBandedLayout()
+        @test AlmostBandedMatrix(V) == V == Matrix(V)
 
         A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
         @test AlmostBandedMatrix(A) == Matrix(A)
+    end
+
+    @testset "cache" begin
+        n = 10
+        A = Vcat(Ones(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1)), (n-1,n)))
+        C = cache(A); resizedata!(C,2,2); 
+        @test C.data[1:2,1:2] == [1.0 1.0; -1.0 1.0]
+        C = cache(A);
+        resizedata!(C,10,10);
+        @test C.data[Base.OneTo.(C.datasize)...] == A[1:10,1:10]
+        @test C isa LazyArrays.CachedMatrix{Float64,<:AlmostBandedMatrix}
+
+        l,u = almostbandwidths(A)
+        r = almostbandedrank(A)
+        data = AlmostBandedMatrix{Float64}(undef,(2l+u+1,0),(l,l+u),r) # pad super
+        C = CachedArray(data,A);  resizedata!(C,1,2); 
+        @test C.data[1,2] == 1.0
+        resizedata!(C,5,3); 
+        @test C.data[1:5,1:3] == A[1:5,1:3]
+        
+
+        A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        C = cache(A);
+        resizedata!(C,10,10);
+        @test C.data[Base.OneTo.(C.datasize)...] == A[1:10,1:10]
+        @test C isa LazyArrays.CachedMatrix{Float64,<:AlmostBandedMatrix}
     end
 
     @testset "Slices" begin
@@ -50,6 +90,12 @@ Random.seed!(0)
         @test MemoryLayout(typeof(A)) == MemoryLayout(typeof(V)) == AlmostBandedLayout()
         @test AlmostBandedMatrix(V) == A[1:3,1:3] == V
         @test A[1:3,1:3] isa AlmostBandedMatrix 
+    end
+
+    @testset "colsupport" begin
+        A = AlmostBandedMatrix{Float64}(undef, (10,11), (2,1), 2)
+        @test colsupport(A,3) ≡ Base.OneTo(5)
+        @test rowsupport(A,5) ≡ 3:11
     end
 
     @testset "Triangular" begin
@@ -73,7 +119,7 @@ Random.seed!(0)
         @test A == Ā == B + triu(Matrix(L),2)
         F = qr(A)
         @test F.Q isa LinearAlgebra.QRPackedQ{Float64,<:BandedMatrix}
-        @test F.R isa UpperTriangular{Float64,<:AlmostBandedMatrix}
+        @test F.R isa UpperTriangular{Float64,<:SubArray{Float64,2,<:AlmostBandedMatrix}}
         @test F.Q' * A ≈ F.R
         @test A == Ã
 
@@ -85,6 +131,21 @@ Random.seed!(0)
         b = randn(n)
         @test A \ b ≈ Matrix(A) \ b 
         @test all(A \ b .=== F \ b .=== F.R \ (F.Q'*b)) 
+
+
+        A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        @test qr(A) isa MatrixFactorizations.QR{Float64,<:AlmostBandedMatrix}
+        @test qr(A) \ b ≈ Matrix(A) \ b
+    end
+
+    @testset "one-col qr" begin
+        A = AlmostBandedMatrix{Float64}(undef,(2,2),(1,1),1)
+        A.bands.data .= randn.()
+        A.fill.args[1] .= randn.()
+        A.fill.args[2] .= randn.()
+        Ã = deepcopy(A)
+        _almostbanded_qr!(A,[1.0],1)
+        @test qr(Ã[:,1]).Q' * Ã ≈ UpperTriangular(A)
     end
 end
 

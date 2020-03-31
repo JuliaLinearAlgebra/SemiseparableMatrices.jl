@@ -13,9 +13,9 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
 [compat]
-ArrayLayouts = "0.2"
+ArrayLayouts = "0.2.1"
 BandedMatrices = "0.15"
-LazyArrays = "0.16"
+LazyArrays = "0.16.1"
 LazyBandedMatrices = "0.2.2"
 MatrixFactorizations = "0.3"
 
