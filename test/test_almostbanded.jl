@@ -22,7 +22,7 @@ Random.seed!(0)
     @testset "copyto!" begin
         n = 10
         A = Vcat(Ones(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1)), (n-1,n)))
-        @test MemoryLayout(typeof(A)) == VcatAlmostBandedLayout()
+        @test MemoryLayout(A) == VcatAlmostBandedLayout()
         @test almostbandwidths(A) == (1,0)
         @test almostbandedrank(A) == 1
 
@@ -37,7 +37,7 @@ Random.seed!(0)
         @test AlmostBandedMatrix(A) == Matrix(A)
 
         V = view(A,1:5,2:5)
-        @test MemoryLayout(typeof(V)) == VcatAlmostBandedLayout()
+        @test MemoryLayout(V) == VcatAlmostBandedLayout()
         @test almostbandwidths(V) == (2,-1)
         @test almostbandedrank(V) == 1
         @test A[1:5,2:5] isa AlmostBandedMatrix
@@ -50,10 +50,19 @@ Random.seed!(0)
         @test AlmostBandedMatrix(V) == V == Matrix(V)
 
         V = view(AlmostBandedMatrix(A),1:5,2:5)
-        @test MemoryLayout(typeof(V)) == AlmostBandedLayout()
+        @test MemoryLayout(V) == AlmostBandedLayout()
         @test AlmostBandedMatrix(V) == V == Matrix(V)
 
         A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        @test MemoryLayout(A) isa VcatAlmostBandedLayout
+        @test almostbandedrank(A) == 2
+        @test almostbandwidths(A) == (2,0)
+        @test AlmostBandedMatrix(A) == Matrix(A)
+
+        A = Vcat(randn(1,n), randn(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        @test MemoryLayout(A) isa VcatAlmostBandedLayout
+        @test almostbandedrank(A) == 2
+        @test almostbandwidths(A) == (2,0)
         @test AlmostBandedMatrix(A) == Matrix(A)
     end
 
@@ -87,7 +96,7 @@ Random.seed!(0)
         n = 80
         A = AlmostBandedMatrix(BandedMatrix(fill(2.0,n,n),(1,1)), LowRankMatrix(fill(3.0,n), ones(1,n)))
         V = view(A,1:3,1:3)
-        @test MemoryLayout(typeof(A)) == MemoryLayout(typeof(V)) == AlmostBandedLayout()
+        @test MemoryLayout(A) == MemoryLayout(V) == AlmostBandedLayout()
         @test AlmostBandedMatrix(V) == A[1:3,1:3] == V
         @test A[1:3,1:3] isa AlmostBandedMatrix 
     end
@@ -102,7 +111,7 @@ Random.seed!(0)
         n = 80
         A = AlmostBandedMatrix(BandedMatrix(fill(2.0,n,n),(1,1)), LowRankMatrix(fill(3.0,n), ones(1,n))) 
         b = randn(n)
-        @test MemoryLayout(typeof(UpperTriangular(A))) == TriangularLayout{'U','N',AlmostBandedLayout}()
+        @test MemoryLayout(UpperTriangular(A)) == TriangularLayout{'U','N',AlmostBandedLayout}()
         @test UpperTriangular(Matrix(A)) \ b ≈ UpperTriangular(A) \ b
         @test UnitUpperTriangular(Matrix(A)) \ b ≈ UnitUpperTriangular(A) \ b
         @test LowerTriangular(Matrix(A)) \ b ≈ LowerTriangular(A) \ b
@@ -134,8 +143,12 @@ Random.seed!(0)
 
 
         A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        @test MemoryLayout(A) isa VcatAlmostBandedLayout
         @test qr(A) isa MatrixFactorizations.QR{Float64,<:AlmostBandedMatrix}
         @test qr(A) \ b ≈ Matrix(A) \ b
+
+        A = Vcat(randn(1,n), randn(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+        MemoryLayout(A)
     end
 
     @testset "one-col qr" begin

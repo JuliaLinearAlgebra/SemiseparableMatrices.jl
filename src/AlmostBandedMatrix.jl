@@ -276,19 +276,25 @@ end
 
 struct VcatAlmostBandedLayout <: AbstractAlmostBandedLayout end
 applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
+applylayout(::Type{typeof(vcat)}, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
+applylayout(::Type{typeof(vcat)}, _, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
 sublayout(::VcatAlmostBandedLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractUnitRange{Int}}}) = 
     VcatAlmostBandedLayout()
+
+__two_arguments(z, y) = (y,z)
+__two_arguments(z, y, x...) = (Vcat(reverse(x)..., y), z)
+_two_arguments(A) = __two_arguments(reverse(arguments(A))...)
 
 arguments(::VcatAlmostBandedLayout, A) = arguments(ApplyLayout{typeof(vcat)}(), A)
 
 function almostbandwidths(::VcatAlmostBandedLayout, A)
-    a,b = arguments(A)
+    a,b = _two_arguments(A)
     m̃ = size(a,1)
     l,u = bandwidths(b)
     (l+m̃,u-m̃)
 end
 
-almostbandedrank(::VcatAlmostBandedLayout, A) = size(first(arguments(A)),1)
+almostbandedrank(::VcatAlmostBandedLayout, A) = size(first(_two_arguments(A)),1)
 
 
 function _copyto!(::AlmostBandedLayout, ::AlmostBandedLayout, dest::AbstractMatrix{T}, A::AbstractMatrix) where T
@@ -302,7 +308,7 @@ end
 function _copyto!(::AlmostBandedLayout, ::VcatAlmostBandedLayout, dest::AbstractMatrix{T}, A::AbstractMatrix) where T
     m,n = size(dest)
     (m,n) == size(A) || throw(DimensionMismatch())
-    a,b = arguments(A)
+    a,b = _two_arguments(A)
     r = size(a,1)
     bands = bandpart(dest)
     U,V = arguments(fillpart(dest))
@@ -310,9 +316,9 @@ function _copyto!(::AlmostBandedLayout, ::VcatAlmostBandedLayout, dest::Abstract
     zero!(view(U,r+1:m,:))
     copyto!(V, a)
     
-    bands[r+1:end,:] .= b
+    copyto!(@views(bands[r+1:end,:]), b)
     
-    for j = 1:min(r+bandwidth(b,2),size(bands,2))
+    for j = 1:min(r+bandwidth(bands,2),size(bands,2))
         kr = colsupport(bands,j) ∩ (1:r)
         if !isempty(kr)
             bands[kr,j] .= view(a,kr,j)
@@ -343,7 +349,7 @@ end
 function resizedata!(::AlmostBandedLayout, ::VcatAlmostBandedLayout, C::CachedMatrix{T}, m::Integer, n::Integer) where T
     @boundscheck checkbounds(Bool, C, m, n) || throw(ArgumentError("Cannot resize beyound size of matrix"))
     A = C.array
-    a,b = arguments(A)
+    a,b = _two_arguments(A)
     r = almostbandedrank(C.data)
 
     # increase size of array if necessary
