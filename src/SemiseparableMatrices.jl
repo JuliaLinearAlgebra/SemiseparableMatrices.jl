@@ -2,7 +2,7 @@ module SemiseparableMatrices
 using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, LazyBandedMatrices, Base
 
 import Base: size, getindex, setindex!, convert, copyto!
-import MatrixFactorizations: QR, QRPackedQ, getQ, getR
+import MatrixFactorizations: QR, QRPackedQ, getQ, getR, QRPackedQLayout, AdjQRPackedQLayout
 import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank
 import BandedMatrices: _banded_qr!, bandeddata
 import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!
