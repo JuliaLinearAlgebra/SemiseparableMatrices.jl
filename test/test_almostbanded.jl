@@ -139,10 +139,10 @@ Random.seed!(0)
         b = randn(n)
         @test A \ b ≈ Matrix(A) \ b 
         @test all(A \ b .=== F \ b .=== F.R \ (F.Q'*b)) 
-        @test lmul!(F.Q,copy(b)) ≈ Matrix(F.Q)*b
-        @test lmul!(F.Q',copy(b)) ≈ Matrix(F.Q)'*b
         Q̃ = QRPackedQ(F.factors,F.τ)
         @test Q̃ ≈ F.Q
+        @test lmul!(Q̃,copy(b)) ≈ lmul!(F.Q,copy(b)) ≈ Matrix(F.Q)*b
+        @test lmul!(Q̃',copy(b)) ≈ lmul!(F.Q',copy(b)) ≈ Matrix(F.Q)'*b
 
         A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
         @test MemoryLayout(A) isa VcatAlmostBandedLayout
@@ -150,7 +150,7 @@ Random.seed!(0)
         @test qr(A) \ b ≈ Matrix(A) \ b
 
         A = Vcat(randn(1,n), randn(1,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
-        MemoryLayout(A)
+        @test MemoryLayout(A) isa VcatAlmostBandedLayout
     end
 
     @testset "one-col qr" begin
