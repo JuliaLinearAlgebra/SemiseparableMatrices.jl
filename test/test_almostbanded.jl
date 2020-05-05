@@ -136,11 +136,13 @@ Random.seed!(0)
         τ = Vector{Float64}(undef,n)
         @inferred(SemiseparableMatrices._almostbanded_qr!(Ā,τ))
 
-        
         b = randn(n)
         @test A \ b ≈ Matrix(A) \ b 
         @test all(A \ b .=== F \ b .=== F.R \ (F.Q'*b)) 
-
+        @test lmul!(F.Q,copy(b)) ≈ Matrix(F.Q)*b
+        @test lmul!(F.Q',copy(b)) ≈ Matrix(F.Q)'*b
+        Q̃ = QRPackedQ(F.factors,F.τ)
+        @test Q̃ ≈ F.Q
 
         A = Vcat(randn(2,n), BandedMatrix((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
         @test MemoryLayout(A) isa VcatAlmostBandedLayout
