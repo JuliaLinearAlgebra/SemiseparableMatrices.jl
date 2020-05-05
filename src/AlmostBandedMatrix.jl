@@ -199,11 +199,11 @@ function ldiv!(A::QR{<:Any,<:AlmostBandedMatrix}, B::AbstractMatrix)
 end
 
 # needed for adaptive QR
-lmul!(A::QRPackedQ{<:Any,<:SubArray{<:Any,2,<:AlmostBandedMatrix}}, B::AbstractVector) = 
-    lmul!(QRPackedQ(bandpart(A.factors), A.τ), B)
-function lmul!(Qc::Adjoint{<:Any,<:QRPackedQ{<:Any,<:SubArray{<:Any,2,<:AlmostBandedMatrix}}}, B::AbstractVector)
-    Q = Qc'
-    lmul!(QRPackedQ(bandpart(Q.factors), Q.τ)', B)    
+materialize!(M::Lmul{<:QRPackedQLayout{AlmostBandedLayout}}) =
+    lmul!(QRPackedQ(bandpart(M.A.factors), M.A.τ), M.B)
+function materialize!(M::Lmul{<:AdjQRPackedQLayout{AlmostBandedLayout}})
+    Q = M.A'
+    lmul!(QRPackedQ(bandpart(Q.factors), Q.τ)', M.B)    
 end
 
 ###
