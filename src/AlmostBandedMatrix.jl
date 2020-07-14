@@ -73,12 +73,12 @@ Base.IndexStyle(::Type{ABM}) where {ABM<:AlmostBandedMatrix} =
 
 function colsupport(::AbstractAlmostBandedLayout, A, j) 
     l,_ = almostbandwidths(A)
-    Base.OneTo(min(j+l,size(A,1)))
+    Base.OneTo(min(maximum(j)+l,size(A,1)))
 end
 
 function rowsupport(::AbstractAlmostBandedLayout, A, k) 
     l,_ = almostbandwidths(A)
-    max(1,k-l):size(A,2)
+    max(1,minimum(k)-l):size(A,2)
 end
 
 function getindex(B::AlmostBandedMatrix, k::Integer, j::Integer)
