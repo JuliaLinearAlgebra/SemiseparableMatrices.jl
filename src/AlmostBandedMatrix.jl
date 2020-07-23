@@ -34,7 +34,7 @@ function AlmostBandedMatrix{T}(A::AlmostBandedMatrix, (l,u)::NTuple{2,Integer}) 
     for b = u_in+1:u
         B[band(b)] .= L[band(b)]
     end
-    AlmostBandedMatrix{T}(B, copy(L))
+    AlmostBandedMatrix{T}(B, deepcopy(L))
 end
 
 AlmostBandedMatrix(A::AlmostBandedMatrix{T}, (l,u)::NTuple{2,Integer}) where T = AlmostBandedMatrix{T}(A, (l,u))
