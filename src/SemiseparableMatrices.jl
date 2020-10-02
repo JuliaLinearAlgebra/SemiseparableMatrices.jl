@@ -23,5 +23,6 @@ separablerank(A) = size(arguments(ApplyLayout{typeof(*)}(),A)[1],2)
 
 include("SemiseparableMatrix.jl")
 include("AlmostBandedMatrix.jl")
+include("invbanded.jl")
 
 end # module
