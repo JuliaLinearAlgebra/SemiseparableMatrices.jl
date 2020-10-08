@@ -45,7 +45,7 @@ end
 
 # triangular
 
-colsupport(L::SemiseparableMatrix{<:Any,<:Any,<:Zeros}, j) = j+L.l:size(L,1)
-colsupport(U::SemiseparableMatrix{<:Any,<:Zeros}, j) = 1:j-U.u
-rowsupport(L::SemiseparableMatrix{<:Any,<:Any,<:Zeros}, k) = 1:k-L.l
-rowsupport(U::SemiseparableMatrix{<:Any,<:Zeros}, k) = k+U.u:size(U,2)
+colsupport(L::SemiseparableMatrix{<:Any,<:Any,<:Zeros}, j) = minimum(j)+L.l:size(L,1)
+colsupport(U::SemiseparableMatrix{<:Any,<:Zeros}, j) = 1:maximum(j)-U.u
+rowsupport(L::SemiseparableMatrix{<:Any,<:Any,<:Zeros}, k) = 1:maximum(k)-L.l
+rowsupport(U::SemiseparableMatrix{<:Any,<:Zeros}, k) = minimum(k)+U.u:size(U,2)
