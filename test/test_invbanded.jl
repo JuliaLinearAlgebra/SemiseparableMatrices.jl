@@ -45,8 +45,8 @@ using SemiseparableMatrices, LazyArrays, MatrixFactorizations, Test
             Ai = inv(A)
             @test Li * Ui ≈ Ai
             @test rank(triu(Ai)[1:5,5:end]) == 1
-            a,b = Li.L.args
-            c,d = Ui.U.args
+            a,b = Li.L.args; b = b'
+            c,d = Ui.U.args; d = d'
             @test Ai[1,1] ≈ a[1]b[1]c[1]d[1]
             @test Ai[1,2] ≈ a[1]b[1]c[1]d[2]
             @test Ai[1,3] ≈ a[1]b[1]c[1]d[3]
@@ -59,27 +59,13 @@ using SemiseparableMatrices, LazyArrays, MatrixFactorizations, Test
             @test Ai[3,3] ≈ a[3]b[1]c[1]d[3]+a[3]b[2]c[2]d[3]+a[3]b[3]c[3]d[3]
             @test Ai[3,4] ≈ a[3]b[1]c[1]d[4]+a[3]b[2]c[2]d[4]+a[3]b[3]c[3]d[4]
 
-            @test Ai[1:3,3:5] ≈ [a[1]b[1]c[1]; a[2]*(b[1]c[1]+b[2]c[2]); a[3]*(b[1]c[1]+b[2]c[2]+b[3]c[3])]*d[:,3:5]
+            @test Ai[1:3,3:5] ≈ [a[1]b[1]c[1]; a[2]*(b[1]c[1]+b[2]c[2]); a[3]*(b[1]c[1]+b[2]c[2]+b[3]c[3])]*d[3:5]'
             @test Ai[3:5,1:3] ≈ a[3:5] * [b[1]c[1]d[1] (b[1]c[1]+b[2]c[2])*d[2] (b[1]c[1]+b[2]c[2]+b[3]c[3])*d[3]]
 
-            b̃ = Array{Float64}(undef, 1, n)
-            for j = 1:n
-                b̃[1,j] = 0
-                for κ = 1:j
-                    b̃[1,j] += b[κ]c[κ]
-                end
-                b̃[1,j] *= d[j]
-            end
-            c̃ = Array{Float64}(undef, n)
-            for j = 1:n
-                c̃[j] = 0
-                for κ = 1:j
-                    c̃[j] += b[κ]c[κ]
-                end
-                c̃[j] *= a[j]
-            end
-            @test tril(a*b̃) ≈ tril(Ai)
-            @test triu(c̃*d) ≈ triu(Ai)
+            b̃ = cumsum(b .* c) .* d
+            c̃ = a .* cumsum(b .* c)
+            @test tril(a*b̃') ≈ tril(Ai)
+            @test triu(c̃*d') ≈ triu(Ai)
         end
     end
 end
