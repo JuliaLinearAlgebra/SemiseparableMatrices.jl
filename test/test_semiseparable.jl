@@ -1,4 +1,9 @@
 using SemiseparableMatrices, BandedMatrices, LinearAlgebra, Test
+import SemiseparableMatrices: LowRankMatrix
+
+@testset "LowRankMatrix" begin
+    @test LowRankMatrix(Zeros(5,5), 2) == Zeros(5,5)
+end
 
 
 @testset "SemiseparableMatrix" begin

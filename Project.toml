@@ -1,7 +1,7 @@
 name = "SemiseparableMatrices"
 uuid = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.2.6"
+version = "0.2.7"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
