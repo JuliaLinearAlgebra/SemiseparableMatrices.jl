@@ -342,7 +342,7 @@ end
 function _cache(::VcatAlmostBandedLayout, A::AbstractArray{T}) where T
     r = almostbandedrank(A)
     l,u = almostbandwidths(A)
-    data = AlmostBandedMatrix{T}(undef, (r,r+u), almostbandwidths(A), r)
+    data = AlmostBandedMatrix(Zeros{T}(r,r+u), almostbandwidths(A), r)
     CachedArray(data, A, (0,0))
 end
 

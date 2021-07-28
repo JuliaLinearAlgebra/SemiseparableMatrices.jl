@@ -1,4 +1,5 @@
 module SemiseparableMatrices
+using LinearAlgebra: BlasFloat
 using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, LazyBandedMatrices, Base
 
 import Base: size, getindex, setindex!, convert, copyto!
@@ -18,6 +19,8 @@ LowRankMatrix(A::AbstractArray, B::AbstractArray) = ApplyMatrix(*, A, B)
 LowRankMatrix(S::SubArray) = LowRankMatrix(map(Array,arguments(S))...)
 LowRankMatrix{T}(::UndefInitializer, (m,n)::NTuple{2,Integer}, r::Integer) where T = 
     ApplyMatrix(*, Array{T}(undef, m, r), Array{T}(undef, r, n))
+LowRankMatrix(Z::Zeros{T}, r::Integer) where T = ApplyMatrix(*, zeros(T, size(Z,1), r), zeros(T, r, size(Z,2)))
+LowRankMatrix{T}(Z::Zeros, r::Integer) where T = ApplyMatrix(*, zeros(T, size(Z,1), r), zeros(T, r, size(Z,2)))
 
 separablerank(A) = size(arguments(ApplyLayout{typeof(*)}(),A)[1],2)    
 

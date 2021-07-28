@@ -1,3 +1,4 @@
+using Random: BigFloat
 using SemiseparableMatrices, BandedMatrices, Test, LinearAlgebra, MatrixFactorizations, LazyArrays, ArrayLayouts, Random
 import BandedMatrices: _BandedMatrix, _banded_qr!
 import SemiseparableMatrices: bandpart, fillpart, AlmostBandedLayout, VcatAlmostBandedLayout, resizedata!, _almostbanded_qr!
@@ -90,6 +91,14 @@ Random.seed!(0)
         resizedata!(C,10,10);
         @test C.data[Base.OneTo.(C.datasize)...] == A[1:10,1:10]
         @test C isa LazyArrays.CachedMatrix{Float64,<:AlmostBandedMatrix}
+
+        @testset "BigFloat" begin
+            A = Vcat(randn(2,n), BandedMatrix{BigFloat}((0 => -Ones(n-1), 1 => 1:(n-1), 2 => Ones(n-2)), (n-2,n)))
+            C = cache(A);
+            resizedata!(C,10,10);
+            @test C.data[Base.OneTo.(C.datasize)...] == A[1:10,1:10]
+            @test C isa LazyArrays.CachedMatrix{BigFloat,<:AlmostBandedMatrix}
+        end
     end
 
     @testset "Slices" begin
