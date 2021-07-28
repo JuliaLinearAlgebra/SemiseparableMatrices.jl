@@ -1,7 +1,7 @@
 # SemiseparableMatrices.jl
 A Julia package to represent semiseparable and almost banded matrices
 
-[![Build Status](https://travis-ci.org/JuliaMatrices/SemiseparableMatrices.jl.svg?branch=master)](https://travis-ci.org/JuliaMatrices/SemiseparableMatrices.jl) 
+[![Build Status](https://github.com/JuliaMatrices/SemiseparableMatrices.jl/workflows/CI/badge.svg)](https://github.com/JuliaMatrices/SemiseparableMatrices.jl/actions)
 
 [![codecov](https://codecov.io/gh/JuliaMatrices/SemiseparableMatrices.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaMatrices/SemiseparableMatrices.jl)
 
