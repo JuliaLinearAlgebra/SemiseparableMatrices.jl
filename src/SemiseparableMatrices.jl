@@ -10,7 +10,7 @@ import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, Ap
 import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, materialize!, triangularlayout, 
                         triangulardata, zero!, _copyto!, colsupport, rowsupport,
                         _qr, _qr!, _factorize
-import LazyBandedMatrices: resize
+import LazyBandedMatrices: resize, ScalarOrBandedLayouts, ApplyBandedLayout
 
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray, almostbandwidths, almostbandedrank
 

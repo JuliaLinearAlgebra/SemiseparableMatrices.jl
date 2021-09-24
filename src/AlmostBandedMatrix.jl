@@ -275,6 +275,14 @@ end
 ###
 
 struct VcatAlmostBandedLayout <: AbstractAlmostBandedLayout end
+
+
+# avoid ambuities
+applylayout(::Type{typeof(vcat)}, ::ScalarOrBandedLayouts, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
+applylayout(::Type{typeof(vcat)}, ::ScalarOrBandedLayouts, ::ScalarOrBandedLayouts, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
+applylayout(::Type{typeof(vcat)}, ::ScalarOrBandedLayouts, ::ScalarOrBandedLayouts, ::ScalarOrBandedLayouts, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
+
+
 applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
 applylayout(::Type{typeof(vcat)}, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
 applylayout(::Type{typeof(vcat)}, _, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
