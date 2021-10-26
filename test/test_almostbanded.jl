@@ -171,5 +171,13 @@ Random.seed!(0)
         _almostbanded_qr!(A,[1.0],1)
         @test qr(Ã[:,1]).Q' * Ã ≈ UpperTriangular(A)
     end
+
+    @testset "almost banded degenerate band" begin
+        A = Vcat(randn(2,6), BandedMatrix(2 => 1:5)[1:4,:])
+        @test almostbandwidths(A) == (1,0)
+        @test colsupport(A,1) == Base.OneTo(2)
+        b = randn(6)
+        @test A\b ≈ Matrix(A)\b
+    end
 end
 
