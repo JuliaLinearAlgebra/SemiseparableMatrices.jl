@@ -299,7 +299,7 @@ function almostbandwidths(::VcatAlmostBandedLayout, A)
     a,b = _two_arguments(A)
     m̃ = size(a,1)
     l,u = bandwidths(b)
-    (l+m̃,u-m̃)
+    (max(l+m̃,m̃-1),u-m̃)
 end
 
 almostbandedrank(::VcatAlmostBandedLayout, A) = size(first(_two_arguments(A)),1)
