@@ -18,7 +18,7 @@ Random.seed!(0)
         if VERSION < v"1.8-"
             @test_throws ErrorException A[1,3] = 5
         else
-            @test_throws CanonicalIndexError A[1,3] = 5
+            @test_throws Base.CanonicalIndexError A[1,3] = 5
         end
         @test almostbandwidths(A) == (2,1)
         @test almostbandedrank(A) == 2
