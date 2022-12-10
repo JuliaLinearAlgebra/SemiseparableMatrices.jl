@@ -153,7 +153,7 @@ Random.seed!(0)
         @test A \ b ≈ Matrix(A) \ b 
         @test all(A \ b .=== F \ b .=== F.R \ (F.Q'*b)) 
         Q̃ = QRPackedQ(F.factors,F.τ)
-        @test Q̃ ≈ F.Q
+        @test Matrix(Q̃) ≈ Matrix(F.Q)
         @test lmul!(Q̃,copy(b)) ≈ lmul!(F.Q,copy(b)) ≈ Matrix(F.Q)*b
         @test lmul!(Q̃',copy(b)) ≈ lmul!(F.Q',copy(b)) ≈ Matrix(F.Q)'*b
 
