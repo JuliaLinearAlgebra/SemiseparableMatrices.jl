@@ -177,10 +177,10 @@ Random.seed!(0)
     end
 
     @testset "almost banded degenerate band" begin
-        A = Vcat(randn(2,6), BandedMatrix(2 => 1:5)[1:4,:])
+        A = Vcat(randn(2,7), BandedMatrix(2 => 1:5)[1:5,:])
         @test almostbandwidths(A) == (1,0)
         @test colsupport(A,1) == Base.OneTo(2)
-        b = randn(6)
+        b = randn(7)
         @test A\b ≈ Matrix(A)\b
     end
 end
