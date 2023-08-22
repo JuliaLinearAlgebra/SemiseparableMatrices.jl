@@ -17,7 +17,7 @@ ArrayLayouts = "0.7, 0.8, 1"
 BandedMatrices = "0.16, 0.17"
 BlockBandedMatrices = "0.11, 0.12"
 LazyArrays = "0.22, 1"
-LazyBandedMatrices = "0.7.2, 0.8"
+LazyBandedMatrices = "0.7.2, 0.8, 0.9"
 MatrixFactorizations = "0.8, 0.9, 1, 2"
 julia = "1.6"
 
