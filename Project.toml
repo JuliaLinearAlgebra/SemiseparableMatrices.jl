@@ -1,7 +1,7 @@
 name = "SemiseparableMatrices"
 uuid = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.3.8"
+version = "0.3.9"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -14,7 +14,7 @@ MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 
 [compat]
 ArrayLayouts = "0.7, 0.8, 1"
-BandedMatrices = "0.16, 0.17"
+BandedMatrices = "0.16, 0.17, 1"
 BlockBandedMatrices = "0.11, 0.12"
 LazyArrays = "0.22, 1"
 LazyBandedMatrices = "0.7.2, 0.8, 0.9"
