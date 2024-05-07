@@ -6,7 +6,7 @@ import Base: size, getindex, setindex!, convert, copyto!
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR, QRPackedQLayout, AdjQRPackedQLayout
 import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank
 import BandedMatrices: _banded_qr!, bandeddata, resize
-import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!
+import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!, PaddedRows
 import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, materialize!, triangularlayout, 
                         triangulardata, zero!, _copyto!, colsupport, rowsupport,
                         _qr, _qr!, _factorize
@@ -15,6 +15,7 @@ export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, Appl
 
 LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
 ScalarOrBandedLayouts = LazyArraysBandedMatricesExt.ScalarOrBandedLayouts
+ApplyBandedLayout = LazyArraysBandedMatricesExt.ApplyBandedLayout
 
 const LowRankMatrix{T,A,B} = MulMatrix{T,Tuple{A,B}}
 LowRankMatrix(A::AbstractArray, B::AbstractArray) = ApplyMatrix(*, A, B)
