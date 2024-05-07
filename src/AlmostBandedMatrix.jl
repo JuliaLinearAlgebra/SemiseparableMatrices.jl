@@ -278,14 +278,14 @@ struct VcatAlmostBandedLayout <: AbstractAlmostBandedLayout end
 
 
 # avoid ambuities
-applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
-applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
-applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::AbstractBandedLayout) = ApplyBandedLayout{typeof(vcat)}()
+applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::BandedLayouts) = ApplyBandedLayout{typeof(vcat)}()
+applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::BandedLayouts) = ApplyBandedLayout{typeof(vcat)}()
+applylayout(::Type{typeof(vcat)}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::DualLayout{<:PaddedRows}, ::BandedLayouts) = ApplyBandedLayout{typeof(vcat)}()
 
 
-applylayout(::Type{typeof(vcat)}, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
-applylayout(::Type{typeof(vcat)}, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
-applylayout(::Type{typeof(vcat)}, _, _, _, ::AbstractBandedLayout) = VcatAlmostBandedLayout()
+applylayout(::Type{typeof(vcat)}, _, ::BandedLayouts) = VcatAlmostBandedLayout()
+applylayout(::Type{typeof(vcat)}, _, _, ::BandedLayouts) = VcatAlmostBandedLayout()
+applylayout(::Type{typeof(vcat)}, _, _, _, ::BandedLayouts) = VcatAlmostBandedLayout()
 sublayout(::VcatAlmostBandedLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractUnitRange{Int}}}) = 
     VcatAlmostBandedLayout()
 

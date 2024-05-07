@@ -14,7 +14,7 @@ import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, mater
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray, almostbandwidths, almostbandedrank
 
 LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
-ScalarOrBandedLayouts = LazyArraysBandedMatricesExt.ScalarOrBandedLayouts
+BandedLayouts = LazyArraysBandedMatricesExt.BandedLayouts
 ApplyBandedLayout = LazyArraysBandedMatricesExt.ApplyBandedLayout
 
 const LowRankMatrix{T,A,B} = MulMatrix{T,Tuple{A,B}}
