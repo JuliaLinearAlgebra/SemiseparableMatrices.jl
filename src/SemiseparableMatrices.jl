@@ -1,18 +1,21 @@
 module SemiseparableMatrices
 using LinearAlgebra: BlasFloat
-using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, LazyBandedMatrices, Base
+using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, Base
 
 import Base: size, getindex, setindex!, convert, copyto!
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR, QRPackedQLayout, AdjQRPackedQLayout
 import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank
-import BandedMatrices: _banded_qr!, bandeddata
-import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!
+import BandedMatrices: _banded_qr!, bandeddata, resize
+import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!, PaddedRows
 import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, materialize!, triangularlayout, 
                         triangulardata, zero!, _copyto!, colsupport, rowsupport,
                         _qr, _qr!, _factorize
-import LazyBandedMatrices: resize, ScalarOrBandedLayouts, ApplyBandedLayout
 
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray, almostbandwidths, almostbandedrank
+
+LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
+BandedLayouts = LazyArraysBandedMatricesExt.BandedLayouts
+ApplyBandedLayout = LazyArraysBandedMatricesExt.ApplyBandedLayout
 
 const LowRankMatrix{T,A,B} = MulMatrix{T,Tuple{A,B}}
 LowRankMatrix(A::AbstractArray, B::AbstractArray) = ApplyMatrix(*, A, B)
