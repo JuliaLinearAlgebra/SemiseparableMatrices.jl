@@ -1,0 +1,665 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\title{A fast QR decomposition for banded plus semiseparable matrices}
+\author{Tao Chen}
+
+
+\begin{document}
+
+\maketitle
+
+Consider an $n$ by $n$ banded plus semiseparable matrix $A$ with rank $r$ in its lower triangular part and rank $p$ in its upper triangular part, meanwhile, the banded part has lower bandwidth $l$ and upper bandwidth $m$.
+
+$A$ can be formulated as 
+
+\begin{equation}
+A:=tril(UV^T, -1) + B + triu(WS^T, 1)\label{express_A}
+\end{equation}
+
+where $U \in \mathbb{R}^{n\times r}$, $V\in \mathbb{R}^{n\times r}$, $W\in \mathbb{R}^{n\times p}$, and $S\in \mathbb{R}^{n \times p}$. Also, $B$ is a banded matrix with lower bandwidth $l$ and upper bandwidth $m$, which can be represented as $B:=(b_{ij})_{i,j=1}^n\in \mathbb{R}^{n,n}$ with $b_{ij}=0$ if $i-j>l$ or $j-i>m$.
+
+If we define $\bar{\mathbf{u}}_i:=U[i,:]^T\in \mathbb{R}^r$, $\bar{\mathbf{v}}_i:=V[i,:]^T\in \mathbb{R}^r$, $\bar{\mathbf{w}}_i:=W[i,:]^T\in \mathbb{R}^p$, and $\bar{\mathbf{s}}_i:=S[i,:]^T\in \mathbb{R}^p$ for $i=1,...,n$, we have:
+\begin{equation}
+A =
+\begin{bmatrix}
+b_{11} & \bar{\mathbf{w}}_1^T \bar{\mathbf{s}}_2 + b_{12} & \bar{\mathbf{w}}_1^T \bar{\mathbf{s}}_3 + b_{13} & \cdots & \bar{\mathbf{w}}_1^T \bar{\mathbf{s}}_n + b_{1n} \\
+\bar{\mathbf{u}}_2^T \bar{\mathbf{v}}_1 + b_{21} & b_{22} & \bar{\mathbf{w}}_2^T \bar{\mathbf{s}}_3 + b_{23} & \cdots & \bar{\mathbf{w}}_2^T \bar{\mathbf{s}}_n + b_{2n} \\
+\bar{\mathbf{u}}_3^T \bar{\mathbf{v}}_1 + b_{31} & \bar{\mathbf{u}}_3^T \bar{\mathbf{v}}_2 + b_{32} & b_{33} & \cdots & \bar{\mathbf{w}}_3^T \bar{\mathbf{s}}_n + b_{3n} \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+\bar{\mathbf{u}}_n^T \bar{\mathbf{v}}_1 + b_{n1} & \bar{\mathbf{u}}_n^T \bar{\mathbf{v}}_2 + b_{n2} & \bar{\mathbf{u}}_n^T \bar{\mathbf{v}}_3 + b_{n3} & \cdots & b_{nn}
+\end{bmatrix}
+\end{equation}
+
+After applying QR decomposition to $A$, the resulting factor matrix $F$, in which the upper triangular portion stores the matrix $R$, and the lower triangular portion contains the Householder reflection vectors $\mathbf{y}$ generated during the decomposition processretain, is again a banded plus semiseparable structure. Specifically, the lower semiseparable part has rank $r$, the upper semiseparable part has rank $r+p$, the lower bandwidth is $l$, and the upper bandwidth is $l+m$. 
+
+Next, we demonstrate by induction why the factor matrix $F$ mantains such a banded plus semiseparable structure. 
+
+Before we start, an important notation will be: for a matrix $S$, let $S[i:j,m:n]$ represent the submatrix of $S$ from row $i$ to row $j$ and from column $m$ to column $n$. When $i=j$ or $m=n$, the notation will be simplified as $S[i,m:n]$ or $S[i:j,m]$.
+
+Let's first introduce a definition and two very helpful lemmas:
+
+\begin{definition}[Householder-modified banded-plus-semiseparable matrix]
+    Given an $n\times n$ banded-plus-semiseparable matrix(bpsm) $A=tril(UV^T, -1) + B + triu(WS^T, 1)$ where $U\in \mathbb{R}^{n\times r}$, $V\in \mathbb{R}^{n\times r}$, $W \in \mathbb{R}^{n\times p}$, $S \in \mathbb{R}^{n\times r}$, and $B$ a banded matrix with lower bandwidth $l$ and upper bandwidth $m$, a matrix $C$ is called a Householder-modified banded-plus-semiseparable matrix(hmbpsm) to $A$ if 
+
+    \begin{equation}
+        C=A+UQS^T+UKU^TA+UE+XS^T+YU^TA+Z
+    \end{equation}
+    for some $Q\in \mathbb{R}^{r\times p}$, $K\in \mathbb{R}^{r\times r}$, $E=[E_s,\mathbf{0}]\in \mathbb{R}^{r \times n}$ with $E_s\in \mathbb{R}^{r\times \min(l+m,n)}$; $X=\begin{bmatrix}
+X_s \\ \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n\times p}$ with $X_s\in \mathbb{R}^{\min(l,n)\times p}$; $Y=\begin{bmatrix}
+Y_s \\ \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n \times r}$ with $Y_s\in \mathbb{R}^{\min(l,n)\times r}$; and $Z=\begin{bmatrix}
+Z_s & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n \times n}$ with $Z_s \in \mathbb{R}^{\min(l,n)\times \min(l+m,n)}$.
+\end{definition}
+
+\begin{definition}[Householder-modified banded-plus-semiseparable vector]
+
+Let $A \in \mathbb{R}^{n \times n}$ be a banded-plus-semiseparable matrix (bpsm) as defined previously. A vector $\mathbf{c}$ of length $n-1$ is called a Householder-modified banded-plus-semiseparable vector(hmbpsv) to $A$ if 
+    \begin{equation}
+        \mathbf{c}^T=\mathbf{d}^T+\boldsymbol{\alpha}^T (S^T[:,2:n])+ \boldsymbol{\beta}^T ((U^TA)[:,2:n])
+    \end{equation}
+for some $\mathbf{d}=\begin{bmatrix}
+\mathbf{d}_s \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-1}$ with $\mathbf{d}_s\in \mathbb{R}^{\min(l+m,n)}$, $\boldsymbol{\alpha}\in \mathbb{R}^p$, and $\boldsymbol{\beta}\in \mathbb{R}^r$.
+\end{definition}
+
+\begin{lemma} \label{helpful_lemma}
+
+Given a bpsm $A$ and its hmbpsm $C$, Suppose a Householder transformation is applied to $C$ to eliminate 
+the subdiagonal entries of its first column, and denote the resulting matrix by 
+$\tilde{C}$. Then the following hold:
+\begin{enumerate}
+    \item The submatrix $\tilde{C}[2:n,\,2:n]$ 
+    is an hmbpsm to $A[2:n,\,2:n]$.
+    \item  
+    $\tilde{C}[1,\,2:n]$ is an hmbpsv to $A$.
+\end{enumerate}
+\end{lemma}
+
+
+\begin{proof}
+
+Let's first introduce some notations: 
+
+$A:=tril(UV^T, -1) + B + triu(WS^T, 1)$ where $U=(\mathbf{u}_1,...,\mathbf{u}_r) \in \mathbb{R}^{n\times r}$, $V=(\mathbf{v}_1,...,\mathbf{v}_r)\in \mathbb{R}^{n\times r}$, $W=(\mathbf{w}_1,...,\mathbf{w}_p)\in \mathbb{R}^{n\times p}$, and $S=(\mathbf{s}_1,...,\mathbf{s}_p)\in \mathbb{R}^{n \times p}$. Here $\mathbf{u}_i=(u_1^{(i)},...,u_n^{(i)})^T\in \mathbb{R}^n$ and $\mathbf{v}_i=(v_1^{(i)},...,v_n^{(i)})^T\in \mathbb{R}^n$ for $i=1,...,r$; $\mathbf{w}_i=(w_1^{(i)},...,w_n^{(i)})^T\in \mathbb{R}^n$ and $\mathbf{s}_i=(s_1^{(i)},...,s_n^{(i)})^T\in \mathbb{R}^n$ for $i=1,...,p$. Also, $B=(b_{ij})_{i,j=1}^n\in \mathbb{R}^{n,n}$ with $b_{ij}=0$ if $i-j>l$ or $j-i>m$.
+
+$C:=A+UQS^T+UKU^TA+UE+XS^T+YU^TA+Z$ where $Q\in \mathbb{R}^{r\times p}$ and $K\in \mathbb{R}^{r\times r}$; $E=[E_s,\mathbf{0}]\in \mathbb{R}^{r \times n}$ with $E_s\in \mathbb{R}^{r\times\min(l+m,n)}$; $X=\begin{bmatrix}
+X_s \\ \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n\times p}$ with $X_s\in \mathbb{R}^{\min(l,n)\times p}$; $Y=\begin{bmatrix}
+Y_s \\ \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n \times r}$ with $Y_s\in \mathbb{R}^{\min(l,n)\times r}$; $Z=\begin{bmatrix}
+Z_s & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{n \times n}$ with $Z_s \in \mathbb{R}^{\min(l,n)\times\min(l+m,n)}$.
+
+$\tilde{C}:=(I-\tau\mathbf{y}\mathbf{y}^T)C$ where $I-\tau\mathbf{y}\mathbf{y}^T$ is a Householder transformation for eliminating the first column of $C$(below the diagonal). Here $\tau$ is a coefficient. From the expression of $C$, it is easy to see that $\mathbf{y}$ can be expressed as $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$ with $\mathbf{e}_1=(1,0,...,0)^T\in \mathbb{R}^n$, $U^{(2)}\in \mathbb{R}^{n\times r}$ s.t. $U^{(2)}[1,:]=0$ and $U^{(2)}[2:n,:]=U[2:n,:]$, $\bar{\mathbf{k}}=(\bar{k}_1,...,\bar{k}_r)^T\in \mathbb{R}^r$, and $\mathbf{b}=(0,b_2,...,b_{min(l+1,n)},0,...,0)^T\in \mathbb{R}^n$. 
+
+Let $\bar{\mathbf{u}}_1:=(u_1^{(1)},...,u_1^{(r)})^T\in \mathbb{R}^r$; write $$\mathbf{e}_1^TA=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS^T$$ where $\mathbf{d}_1=B[1,:]^T\in \mathbb{R}^n$, $\bar{\mathbf{w}}_1=(w_1^{(1)},...,w_1^{(p)})^T\in \mathbb{R}^p$,
+
+and $$\mathbf{b}^TA=\bar{\mathbf{d}}^T+\mathbf{f}^TS^T$$ where $\bar{\mathbf{d}}=(\bar{d}_1,...,\bar{d}_{\min(l+m+1,n)},0,...,0)^T\in \mathbb{R}^n$, $\mathbf{f}=W^T\mathbf{b}\in \mathbb{R}^{p}$.
+
+Next, define the following $6$ variables: $\mathbf{c}_1:=Q^TU^T\mathbf{y} \in \mathbb{R}^p$, $\mathbf{c}_2:=K^TU^T\mathbf{y} \in \mathbb{R}^r$, $\mathbf{c}_3:=U^T\mathbf{y} \in \mathbb{R}^r$, $\mathbf{c}_4:=X^T\mathbf{y} \in \mathbb{R}^p$, $\mathbf{c}_5:=Y^T\mathbf{y} \in \mathbb{R}^r$ and
+$\mathbf{c}_6:=Z^T\mathbf{y}\in \mathbb{R}^{n}$.
+
+It is easy to see that $\mathbf{x}$ can be written as $\mathbf{c}_6=\begin{bmatrix}
+\mathbf{c}_{6s} \\ \mathbf{0} \end{bmatrix}$ with $\mathbf{c}_{6s}\in \mathbb{R}^{\min(l+m,n)}$.
+
+At last, let $\mathbf{x}^{(1)}:=X[1,:]^T\in \mathbb{R}^p$, $\mathbf{y}^{(1)}:=Y[1,:]^T\in \mathbb{R}^r$, and $\mathbf{z}^{(1)}:=Z[1,:]^T\in \mathbb{R}^n$.
+
+To compute $(I-\tau\mathbf{y}\mathbf{y}^T)C$ where $C:=A+UQS^T+UKU^TA+UE+XS^T+YU^TA+Z$, we compute $(I-\tau\mathbf{y}\mathbf{y}^T)A$, $(I-\tau\mathbf{y}\mathbf{y}^T)UQS^T$, $(I-\tau\mathbf{y}\mathbf{y}^T)UKU^TA$, $(I-\tau\mathbf{y}\mathbf{y}^T)UE$, $(I-\tau\mathbf{y}\mathbf{y}^T)XS^T$, $(I-\tau\mathbf{y}\mathbf{y}^T)YU^TA$, and $(I-\tau\mathbf{y}\mathbf{y}^T)Z$ separately. 
+
+(i) By writing $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, $\mathbf{e}_1^TA=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS^T$, and $\mathbf{b}^TA=\bar{\mathbf{d}}^T+\mathbf{f}^TS^T$, we get
+
+\begin{equation}\label{proof_first}
+    \begin{aligned}
+        (I-\tau\mathbf{y}\mathbf{y}^T)A=&A+\mathbf{e_1}(-\tau\mathbf{d}_1^T-\tau\bar{\mathbf{d}}^T)+\mathbf{e_1}(-\tau\bar{\mathbf{w}}_1^T-\tau\mathbf{f}^T)S^T\\&+\mathbf{e}_1(-\tau\bar{\mathbf{k}}^T)U^{(2)T}A+U^{(2)}(-\tau\bar{\mathbf{k}}\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{k}}\mathbf{f}^T)S^T\\&
+        +U^{(2)}(-\tau\bar{\mathbf{k}}\bar{\mathbf{k}}^T)U^{(2)T}A+U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{d}_1^T-\tau\bar{\mathbf{k}}\bar{\mathbf{d}}^T)\\&
+        +(-\tau \mathbf{b}\bar{\mathbf{w}}_1^T-\tau\mathbf{b}\mathbf{f}^T)S^T+(-\tau\mathbf{b}\bar{\mathbf{k}}^T)U^{(2)T}A\\&+(-\tau\mathbf{b}\mathbf{d}_1^T-\tau\mathbf{b}\bar{\mathbf{d}}^T)
+    \end{aligned}
+\end{equation}
+
+(ii) By writing $\mathbf{y}^TUQ=\mathbf{c}_1^T$, $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, and $U=\mathbf{e}_1\bar{\mathbf{u}}_1^T+U^{(2)}$ where $\bar{\mathbf{u}}_1=(u_1^{(1)},...,u_1^{(r)})\in \mathbb{R}^r$, we get
+
+\begin{equation}
+    \begin{aligned}
+        (I-\tau\mathbf{y}\mathbf{y}^T)UQS^T=\mathbf{e}_1(\bar{\mathbf{u}}_1^TQ-\tau\mathbf{c}_1^T)S^T+U^{(2)}(Q-\tau\bar{\mathbf{k}}\mathbf{c}_1^T)S^T+(-\tau\mathbf{b}\mathbf{c}_1^T)S^T
+    \end{aligned}
+\end{equation}
+
+(iii) By writing $\mathbf{y}^TUK=\mathbf{c}_2^T$, $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, $U=\mathbf{e}_1\bar{\mathbf{u}}_1^T+U^{(2)}$, and $\mathbf{e}_1^TA=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS^T$, we get
+
+\begin{equation}
+    \begin{aligned}
+        &(I-\tau\mathbf{y}\mathbf{y}^T)UKU^TA\\=&\mathbf{e}_1(\bar{\mathbf{u}}_1^TK\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)+\mathbf{e}_1(\bar{\mathbf{u}}_1^TK\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T\\&+\mathbf{e}_1(\bar{\mathbf{u}}_1^TK-\tau\mathbf{c}_2^T)U^{(2)T}A
+        +U^{(2)}(K\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{k}}\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T\\&+U^{(2)}(K-\tau\bar{\mathbf{k}}\mathbf{c}_2^T)U^{(2)T}A+U^{(2)}(K\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\bar{\mathbf{k}}\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)\\&+(-\tau\mathbf{b}\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T+(-\tau\mathbf{b}\mathbf{c}_2^T)U^{(2)T}A+(-\tau\mathbf{b}\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)
+    \end{aligned}
+\end{equation}
+
+(iv) By writing $\mathbf{y}^TU=\mathbf{c}_3^T$, $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, and $U=\mathbf{e}_1\bar{\mathbf{u}}_1^T+U^{(2)}$, we get
+
+\begin{equation}
+    \begin{aligned}
+        (I-\tau\mathbf{y}\mathbf{y}^T)UE=\mathbf{e}_1(\bar{\mathbf{u}}_1^TE-\tau\mathbf{c}_3^TE)+U^{(2)}(E-\tau\bar{\mathbf{k}}\mathbf{c}_3^TE)+(-\tau\mathbf{b}\mathbf{c}_3^TE)
+    \end{aligned}
+\end{equation}
+
+(v) By writing $\mathbf{y}^TX=\mathbf{c}_4^T$ and $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, we get
+
+\begin{equation}
+    \begin{aligned}
+        (I-\tau\mathbf{y}\mathbf{y}^T)XS^T=\mathbf{e}_1(-\tau\mathbf{c}_4^T)S^T+U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{c}_4^T)S^T+(X-\tau\mathbf{b}\mathbf{c}_4^T)S^T
+    \end{aligned}
+\end{equation}
+
+(vi) By writing $\mathbf{y}^TY=\mathbf{c}_5^T$, $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, $U=\mathbf{e}_1\bar{\mathbf{u}}_1^T+U^{(2)}$, and $\mathbf{e}_1^TA=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS^T$, we get
+
+\begin{equation}
+    \begin{aligned}
+        (I-\tau\mathbf{y}\mathbf{y}^T)YU^TA=&\mathbf{e}_1(-\tau\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)+\mathbf{e}_1(-\tau\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T+\mathbf{e}_1(-\tau\mathbf{c}_5^T)U^{(2)T}A\\&
+        +U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T+U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{c}_5^T)U^{(2)T}A\\&+U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)+(Y\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\mathbf{b}\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)S^T\\&+(Y-\tau\mathbf{b}\mathbf{c}_5^T)U^{(2)T}A+(Y\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{b}\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)
+    \end{aligned}
+\end{equation}
+
+(vii) By writing $\mathbf{y}^TZ=\mathbf{c}_6^T$ and $\mathbf{y}=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}+\mathbf{b}$, we get
+
+\begin{equation}\label{proof_last}
+\begin{aligned}
+    (I-\tau\mathbf{y}\mathbf{y}^T)Z=\mathbf{e}_1(-\tau\mathbf{c}_6^T)+U^{(2)}(-\tau\bar{\mathbf{k}}\mathbf{c}_6^T)+(Z-\tau\mathbf{b}\mathbf{c}_6^T)
+\end{aligned}
+\end{equation}
+
+Combining Eq.(\ref{proof_first}) to (\ref{proof_last}), we obtain
+
+\textbf{firstly},
+\begin{equation}\label{submatrix_structure}
+\tilde{C}[2:n,2:n]=\tilde{A}+\tilde{U}\tilde{Q}\tilde{S}^T+\tilde{U}\tilde{K}\tilde{U}^T\tilde{A}+\tilde{U}\tilde{E}+\tilde{X}\tilde{S}^T+\tilde{Y}\tilde{U}^T\tilde{A}+\tilde{Z}
+\end{equation}
+
+where
+
+\begin{equation}
+    \tilde{A}:=A[2:n,2:n];
+\end{equation}
+
+\begin{equation}
+    \tilde{U}:=U[2:n,:];
+\end{equation}
+
+\begin{equation}
+    \tilde{S}:=S[2:n,:];
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \tilde{Q}:=&-\tau\bar{\mathbf{k}}\bar{\mathbf{w}}_1^T-\tau \bar{\mathbf{k}}\mathbf{f}^T+Q-\tau\bar{\mathbf{k}}\mathbf{c}_1^T+K\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T\\&
+    -\tau\bar{\mathbf{k}}\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{k}}\mathbf{c}_4^T-\tau\bar{\mathbf{k}}\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T;
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    \tilde{K}:=-\tau\bar{\mathbf{k}}\bar{\mathbf{k}}^T+K-\tau\bar{\mathbf{k}}\mathbf{c}_2^T-\tau\bar{\mathbf{k}}\mathbf{c}_5^T;
+\end{equation}
+
+\begin{equation}
+    \tilde{E}:=[\tilde{E}_s,\mathbf{0}] \in \mathbb{R}^{r\times (n-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{E}_s:=&(-\tau\bar{\mathbf{k}}\mathbf{d}_1^T-\tau\bar{\mathbf{k}}\bar{\mathbf{d}}^T+K\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\bar{\mathbf{k}}\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T+E\\&-\tau\bar{\mathbf{k}}\mathbf{c}_3^TE-\tau\bar{\mathbf{k}}\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\bar{\mathbf{k}}\mathbf{c}_6^T)[:,2:\min(l+m+1,n)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    \tilde{X}:=\begin{bmatrix}
+\tilde{X}_s \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-1)\times p}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{X}_s:=&(-\tau \mathbf{b}\bar{\mathbf{w}}_1^T-\tau \mathbf{b}\mathbf{f}^T-\tau \mathbf{b}\mathbf{c}_1^T-\tau \mathbf{b}\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T+X\\&-\tau\mathbf{b}\mathbf{c}_4^T+Y\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\mathbf{b}\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)[2:\min(l+1,n),:];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    \tilde{Y}:= \begin{bmatrix}
+\tilde{Y}_s \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-1)\times r}
+\end{equation}
+
+with
+
+\begin{equation}
+    \tilde{Y}_s:=(-\tau \mathbf{b}\bar{\mathbf{k}}^T-\tau\mathbf{b}\mathbf{c}_2^T+Y-\tau\mathbf{b}\mathbf{c}_5^T)[2:\min(l+1,n),:];
+\end{equation}
+
+\begin{equation}
+    \tilde{Z}:= \begin{bmatrix}
+\tilde{Z}_s & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{(n-1) \times (n-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{Z}_s:=&(-\tau\mathbf{b}\mathbf{d}_1^T-\tau\mathbf{b}\bar{\mathbf{d}}^T-\tau\mathbf{b}\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{b}\mathbf{c}_3^TE+Y\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{b}\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T\\&+Z-\tau\mathbf{b}\mathbf{c}_6^T)[2:\min(l+1,n),2:\min(l+m+1,n)].
+\end{aligned}
+\end{equation}
+
+\textbf{Secondly},
+
+\begin{equation}
+\tilde{C}[1,2:n]=\hat{\mathbf{d}}^T+\hat{\boldsymbol{\alpha}}^T (S^T[:,2:n])+ \hat{\boldsymbol{\beta}}^T ((U^{(2)T}A)[:,2:n])
+\end{equation}
+
+where
+
+\begin{equation}
+    \hat{\mathbf{d}}:= \begin{bmatrix}
+\hat{\mathbf{d}}_s \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-1}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \hat{\mathbf{d}}_s:=&(\mathbf{d}_1^T-\tau\mathbf{d}_1^T-\tau\bar{\mathbf{d}}^T+\bar{\mathbf{u}}_1^TK\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{c}_2^T\bar{\mathbf{u}}_1\mathbf{d}_1^T+\bar{\mathbf{u}}_1^TE-\tau\mathbf{c}_3^TE\\&+\mathbf{y}^{(1)T}\bar{\mathbf{u}}_1\mathbf{d}_1^T-\tau\mathbf{c}_5^T\bar{\mathbf{u}}_1\mathbf{d}_1^T+\mathbf{z}^{(1)T}-\tau\mathbf{c}_6^T)^T[2:\min(l+m+1,n)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \hat{\boldsymbol{\alpha}}:=&(\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{w}}_1^T-\tau\mathbf{f}^T+\bar{\mathbf{u}}_1^TQ-\tau\mathbf{c}_1^T+\bar{\mathbf{u}}_1^TK\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T\\&-\tau\mathbf{c}_2^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T+\mathbf{x}^{(1)T}-\tau\mathbf{c}_4^T+\mathbf{y}^{(1)T}\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T-\tau\mathbf{c}_5^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)^T\in \mathbb{R}^p;
+\end{aligned}
+\end{equation}
+
+and
+
+\begin{equation}
+    \hat{\boldsymbol{\beta}}:=(-\tau \bar{\mathbf{k}}^T+\bar{\mathbf{u}}_1^TK-\tau\mathbf{c}_2^T+\mathbf{y}^{(1)T}-\tau\mathbf{c}_5^T)^T\in \mathbb{R}^r.
+\end{equation}
+
+From $U^{(2)}=U-\mathbf{e}_1\bar{\mathbf{u}}_1^T$ and $\mathbf{e}_1^TA=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS^T$, we have $U^{(2)T}A=U^TA-\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^TS^T-\bar{\mathbf{u}}_1\mathbf{d}_1^T$, so alternatively, we can write $\tilde{C}[1,2:n]$ as:
+
+\begin{equation}\label{row_structure}
+\tilde{C}[1,2:n]=\tilde{\mathbf{d}}^T+\tilde{\boldsymbol{\alpha}}^T (S^T[:,2:n])+ \tilde{\boldsymbol{\beta}}^T ((U^TA)[:,2:n])
+\end{equation}
+
+where
+
+\begin{equation}
+    \tilde{\mathbf{d}}:= \begin{bmatrix}
+\tilde{\mathbf{d}}_s \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-1}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\mathbf{d}}_s:=&(\mathbf{d}_1^T-\tau\mathbf{d}_1^T-\tau\bar{\mathbf{d}}^T+\bar{\mathbf{u}}_1^TE-\tau\mathbf{c}_3^TE\\&+\mathbf{z}^{(1)T}-\tau\mathbf{c}_6^T+\tau\bar{\mathbf{k}}^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)^T[2:\min(l+m+1,n)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\boldsymbol{\alpha}}:=&(\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{w}}_1^T-\tau\mathbf{f}^T+\bar{\mathbf{u}}_1^TQ-\tau\mathbf{c}_1^T+\mathbf{x}^{(1)T}-\tau\mathbf{c}_4^T+\tau\bar{\mathbf{k}}^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)^T\in \mathbb{R}^p;
+\end{aligned}
+\end{equation}
+
+and
+
+\begin{equation}
+    \tilde{\boldsymbol{\beta}}:=(-\tau \bar{\mathbf{k}}^T+\bar{\mathbf{u}}_1^TK-\tau\mathbf{c}_2^T+\mathbf{y}^{(1)T}-\tau\mathbf{c}_5^T)^T\in \mathbb{R}^r.
+\end{equation}
+
+We have proven lemma \ref{helpful_lemma} from Eq (\ref{submatrix_structure}) and (\ref{row_structure}).
+
+\end{proof}
+
+
+With this lemma, we can now prove the following theorem.
+
+
+\begin{theorem}
+After applying QR decomposition to a banded plus semiseparable matrix $A$(which is expressed in Eq.(\ref{express_A})) with lower rank $r$, upper rank $p$, lower bandwidth $l$, and upper bandwidth $m$, the factor matrix $F$ obtained is also a banded plus semiseparable matrix. Its lower semiseparable part has rank $r$ and upper semiseparable part has rank $r+p$; its lower bandwidth is $l$ and upper bandwidth is $l+m$. 
+\end{theorem}
+
+\begin{proof}
+
+The QR decomposition can be done by performing a series of Householder Transformations(HT) to eliminate elements below the diagonals of $A$ in the first column, the second column, ..., up to the $n-1$th column in order.
+
+First, we perform an HT to eliminate the first column, that is, computing $(I-\tau_1 \mathbf{y}_1 \mathbf{y}^T_1)A$, where $\mathbf{y}_1$ is a regularized reflection vector s.t. the first nonzero element in $\mathbf{y}_1$ is $1$, and $\tau_1$ is a coefficient found during the process of the first HT. It is easy to see that $\mathbf{y}_1$ can be represented as $\mathbf{y}_1=\mathbf{e}_1+U^{(2)}\bar{\mathbf{k}}_2+\mathbf{b}_2$ where $\bar{\mathbf{k}}_2\in \mathbb{R}^r$, $\mathbf{b}_2=(0,b^{(2)}_2,b^{(2)}_3,...,b^{(2)}_{\min(l+1,n)},0,...,0)^T \in R^n$. Therefore, the first column of $F$ below the diagonal can be determined as
+\begin{equation}
+F[2:n, 1]=(U\bar{\mathbf{k}}_2+\mathbf{b}_2)[2:n].
+\end{equation}
+
+Define $A_i=A[i:n,i:n]\in \mathbb{R}^{n+1-i,n+1-i}$, $U_i=U[i:n,:]\in \mathbb{R}^{(n+1-i)\times r}$, $V_i=V[i:n,:]\in \mathbb{R}^{(n+1-i)\times r}$, $S_i=S[i:n,:]\in \mathbb{R}^{(n+1-i)\times p}$, and $W_i=W[i:n,:]\in \mathbb{R}^{(n+1-i)\times p}$; $\bar{\mathbf{u}}_i:=(u_i^{(1)},...,u_i^{(r)})^T\in \mathbb{R}^r$ and $\bar{\mathbf{w}}_i=(w_i^{(1)},...,w_i^{(p)})^T\in \mathbb{R}^p$ for $i=1,...,n$. Let $A^{(i)}$ be matrix $A$ after the $i$th HT, we have $A^{(1)}:=(I-\tau_1 \mathbf{y}_1 \mathbf{y}^T_1)A$ now. Also let $\bar{S}:=U^TA\in \mathbb{R}^{r\times n}$, apply Eq.(\ref{submatrix_structure}) and (\ref{row_structure}) in lemma (\ref{helpful_lemma}) by setting $A=A_1$, $U=U_1$, $S=S_1$, $Q=\mathbf{0}$, $K=\mathbf{0}$, $E=\mathbf{0}$, $X=\mathbf{0}$, $Y=\mathbf{0}$, $Z=\mathbf{0}$, and compute $\mathbf{c}_1^{(1)}:=Q^TU_1^T\mathbf{y}_1=\mathbf{0}$, $\mathbf{c}_2^{(1)}:=K^TU_1^T\mathbf{y}_1=\mathbf{0}$, $\mathbf{c}_3^{(1)}:=U_1^T\mathbf{y}_1$, $\mathbf{c}_4^{(1)}:=X^T\mathbf{y}_1 =\mathbf{0}$, $\mathbf{c}_5^{(1)}:=Y^T\mathbf{y}_1=\mathbf{0}$ and
+$\mathbf{c}_6^{(1)}:=Z^T\mathbf{y}_1=\mathbf{0}$, also write $\mathbf{e}_1^TA_1=\mathbf{d}_1^T+\bar{\mathbf{w}}_1^TS_1^T$ where $\mathbf{d}_1=B[1,:]^T\in \mathbb{R}^n$, and $\mathbf{b}_2^TA_1=\bar{\mathbf{d}}_1^T+\mathbf{f}_1^TS_1^T$ where $\bar{\mathbf{d}}_1=(\bar{d}_1,...,\bar{d}_{\min(l+m+1,n)},0,...,0)^T\in \mathbb{R}^n$, $\mathbf{f}_1=W_1^T\mathbf{b}_2\in \mathbb{R}^{p}$, we have:
+
+i.
+
+\begin{equation}
+A ^{(1)}[2:n,2:n]=A_2+U_2Q_2S_2^T+U_2K_2U_2^TA_2+U_2E_2+X_2S_2^T+Y_2U_2^TA_2+Z_2
+\end{equation}
+with 
+\begin{equation}
+\begin{aligned}
+    Q_2:=-\tau_1\bar{\mathbf{k}}_2\bar{\mathbf{w}}_1^T-\tau_1 \bar{\mathbf{k}}_2\mathbf{f}_1^T
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    K_2:=-\tau_1\bar{\mathbf{k}}_2\bar{\mathbf{k}}_2^T;
+\end{equation}
+
+\begin{equation}
+    E_2:=[E_s^{(2)},\mathbf{0}] \in \mathbb{R}^{r\times (n-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    E_s^{(2)}:=&(-\tau_1\bar{\mathbf{k}}_2\mathbf{d}_1^T-\tau_1\bar{\mathbf{k}}_2\bar{\mathbf{d}}_1^T)[:,2:\min(l+m+1,n)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    X_2:=\begin{bmatrix}
+X_s^{(2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-1)\times p}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    X_s^{(2)}:=&(-\tau_1 \mathbf{b}_2\bar{\mathbf{w}}_1^T-\tau_1 \mathbf{b}_2\mathbf{f}_1^T)[2:\min(l+1,n),:];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    Y_2:= \begin{bmatrix}
+Y_s^{(2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-1)\times r}
+\end{equation}
+
+with
+
+\begin{equation}
+    Y_s^{(2)}:=(-\tau_1 \mathbf{b}_2\bar{\mathbf{k}}_2^T)[2:\min(l+1,n),:];
+\end{equation}
+
+\begin{equation}
+    Z_2:= \begin{bmatrix}
+Z_s^{(2)} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{(n-1) \times (n-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    Z_s^{(2)}:=&(-\tau_1\mathbf{b}_2\mathbf{d}_1^T-\tau_1\mathbf{b}_2\bar{\mathbf{d}}_1^T)[2:\min(l+1,n),2:\min(l+m+1,n)].
+\end{aligned}
+\end{equation}
+
+ii.
+
+\begin{equation}
+F[1,2:n]=A^{(1)}[1,2:n]=\tilde{\mathbf{d}}_2^T+(\boldsymbol{\alpha}_2^T S^T)[2:n]+ (\boldsymbol{\beta}_2^T \bar{S})[2:n]
+\end{equation}
+
+where
+
+\begin{equation}
+    \tilde{\mathbf{d}}_2:= \begin{bmatrix}
+\tilde{\mathbf{d}}_s^{(2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-1}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\mathbf{d}}_s^{(2)}:=(\mathbf{d}_1^T-\tau\mathbf{d}_1^T-\tau\bar{\mathbf{d}}^T+\tau\bar{\mathbf{k}}^T\bar{\mathbf{u}}_1\mathbf{d}_1^T)^T[2:\min(l+m+1,n)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \boldsymbol{\alpha}_2:=(\bar{\mathbf{w}}_1^T-\tau\bar{\mathbf{w}}_1^T-\tau\mathbf{f}^T+\tau\bar{\mathbf{k}}^T\bar{\mathbf{u}}_1\bar{\mathbf{w}}_1^T)^T\in \mathbb{R}^p;
+\end{aligned}
+\end{equation}
+
+and
+
+\begin{equation}
+    \boldsymbol{\beta}_2:=(-\tau \bar{\mathbf{k}}^T)^T\in \mathbb{R}^r.
+\end{equation}
+
+
+\textbf{Next is the induction part}:
+
+Suppose that after the $j$th HT($1\leq j<n$), for $i=1,..,j$, $F[i+1:n, i]$ and $F[i,i+1:n]$ are both determined as
+
+\begin{equation}
+    F[i+1:n, i]=(U\bar{\mathbf{k}}_{i+1})[i+1:n]+\mathbf{b}_{i+1}[2:n+1-i],\label{F_tril}
+\end{equation}
+with $\bar{\mathbf{k}}_{i+1}\in \mathbb{R}^r$ and $\mathbf{b}_{i+1}=(0,b_2^{(i+1)},b_3^{(i+1)},...,b_{\min(l+1,n+1-i)}^{(i+1)},0...,0)^T\in \mathbb{R}^{n+1-i}$;
+\begin{equation}
+    F[i,i+1:n]=\tilde{\mathbf{d}}_{i+1}+(\tilde{\boldsymbol{\alpha}}_{i+1}^TS^T)[i+1:n]+(\tilde{\boldsymbol{\beta}}^T_{i+1}\bar{S})[i+1:n] \label{F_triu}
+\end{equation}
+
+with $\tilde{\boldsymbol{\alpha}}_{i+1}\in \mathbb{R}^p$, $\tilde{\boldsymbol{\beta}}_{i+1}\in \mathbb{R}^r$, and $\tilde{\mathbf{d}}_{i+1}=(\tilde{d}_1^{(i+1)},\tilde{d}_2^{(i+1)},...,\tilde{d}_{\min(l+m,n-i)}^{(i+1)},0,...,0)^T\in \mathbb{R}^{n-i}$. 
+
+Also suppose that 
+
+\begin{equation}
+\begin{aligned}
+    &A^{(j)}[j+1:n,j+1:n]\\=&A_{j+1}+U_{j+1}Q_{j+1}S_{j+1}^T+U_{j+1}K_{j+1}U_{j+1}^TA_{j+1}\\&+U_{j+1}E_{j+1}+X_{j+1}S_{j+1}^T+Y_{j+1}U_{j+1}^TA_{j+1}+Z_{j+1}\label{After_HT}
+\end{aligned}
+\end{equation}
+
+where $Q_{j+1}\in\mathbb{R}^{r\times p}$; $K_{j+1}\in \mathbb{R}^{r\times r}$; $E_{j+1}=[E_s^{(j+1)},\mathbf{0}]\in \mathbb{R}^{r\times (n-j)}$ with $E_s^{(j+1)}\in \mathbb{R}^{r\times \min(l+m,n-j)}$; $X_{j+1}=\begin{bmatrix}
+X_s^{(j+1)} \\ \mathbb{0} \end{bmatrix} \in \mathbb{R}^{(n-j)\times p}$ with $X_s^{(j+1)} \in \mathbb{R}^{\min(l,n-j)\times p}$; $Y_{j+1}=\begin{bmatrix}
+Y_s^{(j+1)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-j)\times r}$ with $Y_s^{(j+1)} \in \mathbb{R}^{\min(l,n-j)\times r}$; $Z_{j+1}=\begin{bmatrix}
+Z_s^{(j+1)} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{(n-j) \times (n-j)}$ with $Z_s^{(j+1)}\in \mathbb{R}^{\min(l,n-j)\times min(l+m,n-j)}$.
+
+If $j+1<n$, we further perform the next $j+1$th HT, i.e., we multiply $I-\tau_{j+1} \mathbf{y}_{j+1} \mathbf{y}_{j+1}^T$ on the submatrix $A^{(j)}[j+1:n,j+1:n]$, where $\mathbf{y}_{j+1}$ is the regularized reflection vector for the $j+1$th HT and $\tau_{j+1}$ is a coefficient found during the $j+1$th HT. It is easy to see that $\mathbf{y}_{j+1}$ can be represented as $\mathbf{y}_{j+1}=\mathbf{e}_{j+1}+U^{(j+2)}\bar{\mathbf{k}}_{j+2}+\mathbf{b}_{j+2}$ where 
+
+$$
+\mathbf{e}_{j+1}=[1,0,...,0]^T\in \mathbb{R}^{n-j},
+$$ 
+$$
+U^{(j+2)}\in \mathbf{R}^{(n-j)\times r} \text{ s.t. } U^{(j+2)}[1,:]=0 \text{ and } U^{(j+2)}[2:n-j,:]=U[j+2:n,:].
+$$
+
+Also $\bar{\mathbf{k}}_{j+2}\in \mathbb{R}^r$ and $\mathbf{b}_{j+2}=(0,b_2^{(j+2)},b_3^{(j+2)},...,b_{\min(l+1,n-j)}^{(i+1)},0...,0)^T\in \mathbb{R}^{n-j}$.
+
+Therefore, when $j<n-1$, the $j+1$th column of $F$ below the diagonal can be updated as:
+
+\begin{equation}
+    F[j+2:n,j+1]=(U\bar{\mathbf{k}}_{j+2})[j+2:n]+\mathbf{b}_{j+2}[2:n-j].\label{F_tril_2}
+\end{equation}
+
+Now apply Eq.(\ref{submatrix_structure}) and (\ref{row_structure}) in lemma (\ref{helpful_lemma}) by setting $C=A^{(j)}[j+1:n,j+1:n]$ and compute $\mathbf{c}_1^{(j+1)}:=Q_{j+1}^TU_{j+1}^T\mathbf{y}_{j+1}$, $\mathbf{c}_2^{(j+1)}:=K_{j+1}^TU_{j+1}^T\mathbf{y}_{j+1}$, $\mathbf{c}_3^{(j+1)}:=U_{j+1}^T\mathbf{y}_{j+1}$, $\mathbf{c}_4^{(j+1)}:=X_{j+1}^T\mathbf{y}_{j+1}$, $\mathbf{c}_5^{(j+1)}:=Y_{j+1}^T\mathbf{y}_{j+1}$ and
+$\mathbf{c}_6^{(j+1)}:=Z_{j+1}^T\mathbf{y}_{j+1}$, also write $\mathbf{e}_{j+1}^TA_{j+1}=\mathbf{d}_{j+1}^T+\bar{\mathbf{w}}_{j+1}^TS_{j+1}^T$ where $\mathbf{d}_{j+1}=B[j+1,j+1:n]^T\in \mathbb{R}^n$, and $\mathbf{b}_{j+2}^TA_{j+1}=\bar{\mathbf{d}}_{j+1}^T+\mathbf{f}_{j+1}^TS_{j+1}^T$ where $\bar{\mathbf{d}}_{j+1}=(\bar{d}_1,...,\bar{d}_{\min(l+m+1,n-j)},0,...,0)^T\in \mathbb{R}^{n-j}$, $\mathbf{f}_{j+1}=W_{j+1}^T\mathbf{b}_{j+2}\in \mathbb{R}^{p}$. Also let $\mathbf{x}_{j+1}^{(1)}=X_{j+1}[1,:]^T\in \mathbb{R}^p$, $\mathbf{y}_{j+1}^{(1)}=Y_{j+1}[1,:]^T\in \mathbb{R}^r$, and $\mathbf{z}_{j+1}^{(1)}=Z_{j+1}[1,:]^T\in \mathbb{R}^{(n-j)}$.
+
+
+
+We get:
+
+i.
+
+\begin{equation}
+\begin{aligned}
+    &A^{(j+1)}[j+2:n,j+2:n]\\=&A_{j+2}+U_{j+2}Q_{j+2}S_{j+2}^T+U_{j+2}K_{j+2}U_{j+2}^TA_{j+2}\\&+U_{j+2}E_{j+2}+X_{j+2}S_{j+2}^T+Y_{j+2}U_{j+2}^TA_{j+2}+Z_{j+2} \label{After_HT_2}
+\end{aligned}
+\end{equation}
+
+where
+
+\begin{equation}
+\begin{aligned}
+    Q_{j+2}:=&-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1} \bar{\mathbf{k}}_{j+2}\mathbf{f}_{j+1}^T+Q_{j+1}-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_1^{(j+1)T}\\&+K_{j+1}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T
+    -\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_2^{(j+1)T}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T\\&-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_4^{(j+1)T}-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_5^{(j+1)T}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T;
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    K_{j+2}:=-\tau_{j+1}\bar{\mathbf{k}}_{j+1}\bar{\mathbf{k}}_{j+1}^T+K_{j+1}-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_2^{(j+1)T}-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_5^{(j+1)T};
+\end{equation}
+
+\begin{equation}
+    E_{j+2}:=[\tilde{E}_s^{(j+2)},\mathbf{0}] \in \mathbb{R}^{r\times (n-j-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    &\tilde{E}_s^{(j+2)}:=\\&(-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{d}_{j+1}^T-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\bar{\mathbf{d}}_{j+1}^T+K_{j+1}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T\\&-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_2^{(j+1)T}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T+E_{j+1}-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_3^{(j+1)T}E_{j+1}\\&-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_5^{(j+1)T}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T-\tau_{j+1}\bar{\mathbf{k}}_{j+2}\mathbf{c}_6^{(j+1)T})[:,2:\min(l+m+1,n-j)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    X_{j+2}:=\begin{bmatrix}
+\tilde{X}_s^{(j+2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-j-1)\times p}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    &\tilde{X}_s^{(j+2)}:=\\&(-\tau_{j+1} \mathbf{b}_{j+2}\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1} \mathbf{b}_{j+2}\mathbf{f}_{j+1}^T-\tau_{j+1} \mathbf{b}_{j+2}\mathbf{c}_1^{(j+1)T}\\&-\tau_{j+1} \mathbf{b}_{j+2}\mathbf{c}_2^{(j+1)T}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T+X_{j+1}-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_4^{(j+1)T}\\&+Y_{j+1}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_5^{(j+1)T}\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T)[2:\min(l+1,n-j),:];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    Y_{j+2}:= \begin{bmatrix}
+\tilde{Y}_s^{(j+2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{(n-j-1)\times r}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{Y}_s^{(j+2)}:=&(-\tau_{j+1} \mathbf{b}_{j+2}\bar{\mathbf{k}}_{j+2}^T-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_2^{(j+1)T}+Y_{j+1}\\&-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_5^{(j+1)T})[2:\min(l+1,n-j),:];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    Z_{j+2}:= \begin{bmatrix}
+\tilde{Z}_s^{(j+2)} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} \end{bmatrix}\in \mathbb{R}^{(n-j-1) \times (n-j-1)}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    &\tilde{Z}_s^{(j+2)}:=\\&(-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{d}_{j+1}^T-\tau_{j+1}\mathbf{b}_{j+2}\bar{\mathbf{d}}_{j+1}^T-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_2^{(j+1)T}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T\\&-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_3^{(j+1)T}E_{j+1}+Y_{j+1}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_5^{(j+1)T}\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T\\&+Z_{j+1}-\tau_{j+1}\mathbf{b}_{j+2}\mathbf{c}_6^{(j+1)T})[2:\min(l+1,n-j),2:\min(l+m+1,n-j)].
+\end{aligned}
+\end{equation}
+
+ii.
+
+\begin{equation}
+\begin{aligned}
+&F[j+1,j+2:n]=A^{(j+1)}[j+1,j+2:n]\\&=\tilde{\tilde{\mathbf{d}}}_{j+2}^T+(\tilde{\tilde{\boldsymbol{\alpha}}}_{j+2}^T S^T)[j+2:n]+ (\tilde{\tilde{\boldsymbol{\beta}}}_{j+2}^T U_{j+1}^TA_{j+1})[2:n-j]) \label{rewrite_needed}
+\end{aligned}
+\end{equation}
+
+where
+
+\begin{equation}
+    \tilde{\tilde{\mathbf{d}}}_{j+2}:= \begin{bmatrix}
+\tilde{\tilde{\mathbf{d}}}_s^{(j+2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-j-1}
+\end{equation}
+
+with
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\tilde{\mathbf{d}}}_s^{(j+2)}:=&(\mathbf{d}_{j+1}^T-\tau_{j+1}\mathbf{d}_{j+1}^T-\tau_{j+1}\bar{\mathbf{d}}_{j+1}^T+\bar{\mathbf{u}}_{j+1}^TE_{j+1}-\tau_{j+1}\mathbf{c}_3^{(j+1)T}E_{j+1}\\&\mathbf{z}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_6^{(j+1)T}+\tau_{j+1}\bar{\mathbf{k}}_{j+2}^T\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T)^T[2:\min(l+m+1,n-j)];
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\tilde{\boldsymbol{\alpha}}}_{j+2}:=&(\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1}\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1}\mathbf{f}_{j+1}^T+\bar{\mathbf{u}}_{j+1}^TQ_{j+1}-\tau_{j+1}\mathbf{c}_1^{(j+1)T}\\&\mathbf{x}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_4^{(j+1)T}+\tau_{j+1}\bar{\mathbf{k}}_{j+2}^T\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T)^T\in \mathbb{R}^p; 
+\end{aligned}
+\end{equation}
+
+and
+
+\begin{equation}
+    \tilde{\tilde{\boldsymbol{\beta}}}_{j+2}:=(-\tau_{j+1} \bar{\mathbf{k}}_{j+2}^T+\bar{\mathbf{u}}_{j+1}^TK_{j+1}-\tau_{j+1}\mathbf{c}_2^{(j+1)T}+\mathbf{y}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_5^{(j+1)T})^T\in \mathbb{R}^r.
+\end{equation}
+
+Actually, we want to express Eq.(\ref{rewrite_needed}) as
+
+\begin{equation}
+\begin{aligned}
+&F[j+1,j+2:n]=A^{(j+1)}[j+1,j+2:n]\\&=\tilde{\mathbf{d}}_{j+2}^T+(\tilde{\boldsymbol{\alpha}}_{j+2}^T S^T)[j+2:n]+ (\tilde{\boldsymbol{\beta}}_{j+2}^T \bar{S})[j+2:n]) \label{F_triu_2}
+\end{aligned}
+\end{equation}
+
+where $\bar{S}=U^TA$ and $\tilde{\mathbf{d}}_{j+2}:= \begin{bmatrix}
+\tilde{\mathbf{d}}_s^{(j+2)} \\ \mathbf{0} \end{bmatrix} \in \mathbb{R}^{n-j-1}$. Since
+
+\begin{equation}
+\begin{aligned}
+    U^T_{j+1}A_{j+1}[:,2:n-j]=&(U^TA-\sum_{t=1}^{j}\bar{\mathbf{u}}_t\bar{\mathbf{w}}_t^TS^T)[:,j+2:n]\\&-\sum_{t=max(j-m+2,1)}^{j}\bar{\mathbf{u}}_t(B[t,j+2:n]), \label{connected_to_UTA}
+\end{aligned}
+\end{equation}
+
+substitute Eq. (\ref{connected_to_UTA}) to Eq.(\ref{rewrite_needed}), we can get $\tilde{\mathbf{d}}_{j+2}$, $\tilde{\boldsymbol{\alpha}}_{j+2}$, and $\tilde{\boldsymbol{\beta}}_{j+2}$ in Eq.(\ref{F_triu_2}):
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\mathbf{d}}_s^{(j+2)}:=&(\mathbf{d}_{j+1}^T-\tau_{j+1}\mathbf{d}_{j+1}^T-\tau_{j+1}\bar{\mathbf{d}}_{j+1}^T+\bar{\mathbf{u}}_{j+1}^TE_{j+1}-\tau_{j+1}\mathbf{c}_3^{(j+1)T}E_{j+1}\\&+\mathbf{z}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_6^{(j+1)T}+\tau_{j+1}\bar{\mathbf{k}}_{j+2}^T\bar{\mathbf{u}}_{j+1}\mathbf{d}_{j+1}^T)^T[2:\min(l+m+1,n-j)]\\&
+    +((\tau_{j+1} \bar{\mathbf{k}}_{j+2}^T-\bar{\mathbf{u}}_{j+1}^TK_{j+1}+\tau_{j+1}\mathbf{c}_2^{(j+1)T}-\mathbf{y}_{j+1}^{(1)T}+\tau_{j+1}\mathbf{c}_5^{(j+1)T})\\&\times\sum_{t=max(j-m+2,1)}^{j}\bar{\mathbf{u}}_t(B[t,j+2:\min(l+m+j+1,n)]))^T;
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+    \tilde{\boldsymbol{\alpha}}_{j+2}:=&(\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1}\bar{\mathbf{w}}_{j+1}^T-\tau_{j+1}\mathbf{f}_{j+1}^T+\bar{\mathbf{u}}_{j+1}^TQ_{j+1}-\tau_{j+1}\mathbf{c}_1^{(j+1)T}\\&+\mathbf{x}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_4^{(j+1)T}+\tau_{j+1}\bar{\mathbf{k}}_{j+2}^T\bar{\mathbf{u}}_{j+1}\bar{\mathbf{w}}_{j+1}^T\\&
+    +(\tau_{j+1} \bar{\mathbf{k}}_{j+2}^T-\bar{\mathbf{u}}_{j+1}^TK_{j+1}+\tau_{j+1}\mathbf{c}_2^{(j+1)T}-\mathbf{y}_{j+1}^{(1)T}+\tau_{j+1}\mathbf{c}_5^{(j+1)T})\\&\quad\times\sum_{t=1}^{j}\bar{\mathbf{u}}_t\bar{\mathbf{w}}_t^T)^T; 
+\end{aligned}
+\end{equation}
+
+and
+
+\begin{equation}
+    \tilde{\boldsymbol{\beta}}_{j+2}:=(-\tau_{j+1} \bar{\mathbf{k}}_{j+2}^T+\bar{\mathbf{u}}_{j+1}^TK_{j+1}-\tau_{j+1}\mathbf{c}_2^{(j+1)T}+\mathbf{y}_{j+1}^{(1)T}-\tau_{j+1}\mathbf{c}_5^{(j+1)T})^T.
+\end{equation}
+
+
+After the $j+1$th HT, (\ref{F_tril_2}) has the same form as (\ref{F_tril}), (\ref{F_triu_2}) the same form as (\ref{F_triu}), and (\ref{After_HT_2}) the same form as (\ref{After_HT}). Therefore, by induction, we have Eq.(\ref{F_tril}) and (\ref{F_triu}) hold for $i=1,...,n-1$. Finally,
+
+\begin{equation}
+    F=tril(U\bar{K}^T,-1)+B_F+triu(\bar{A}S^T+\bar{B}\bar{S},1) \label{express_F}
+\end{equation}
+
+where $\bar{K}\in \mathbb{R}^{n\times r}$, s.t. $\bar{K}[i,:]=\bar{\mathbf{k}}_{i+1}^T$ for $i=1,...,n-1$ and $\bar{K}[n,:]=0$;  $\bar{A}\in \mathbb{R}^{n\times p}$ s.t. $\bar{A}[i,:]=\boldsymbol{\alpha}_{i+1}^T$ for $i=1,...,n-1$ and $\bar{K}[n,:]=0$; $\bar{B}\in \mathbb{R}^{n\times r}$ s.t. $\bar{B}[i,:]=\boldsymbol{\beta}_{i+1}^T$ for $i=1,...,n-1$ and $\bar{B}[n,:]=0$. $B_F$ is a banded matrix with lower bandwidth $l$ and upper bandwidth $l+m$ s.t.
+
+\begin{equation}
+B_F[i,j]=
+\begin{cases}
+    A^{(i)}[i,i], & i=j<n \\
+    A^{(n-1)}[n,n], & i=j=n \\
+    \mathbf{b}_{j+1}[i-j+1]& 0 < i-j \leq l \\
+    \tilde{\mathbf{d}}_{i+1}[j-i]& 0 < j-i \leq l+m \\
+    0 & otherwise
+\end{cases}
+\end{equation}
+
+From Eq.(\ref{express_F}), we can see that $F$ is a banded plus semiseparable matrix with lower rank $r$, upper rank $r+p$, lower bandwidth $l$, and upper bandwidth $l+m$. 
+
+\end{proof}
+
+
+
+\end{document}
