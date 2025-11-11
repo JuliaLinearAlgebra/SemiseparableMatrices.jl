@@ -1,7 +1,7 @@
-name = "BandedPlusSemiseparableMatrices"
-uuid = "baa84449-aec6-4dc3-ad95-190cb16cdd31"
+name = "SemiseparableMatrices"
+uuid = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.4.0"
+version = "0.5.0"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -10,8 +10,6 @@ BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
-SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 
 [compat]
 ArrayLayouts = "1.0"
