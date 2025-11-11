@@ -1,12 +1,3 @@
-module BandedPlusSemiseparableMatrices
-
-using LinearAlgebra, BandedMatrices
-import BandedMatrices: isbanded, bandwidths
-import Base: size, axes, getindex
-using SemiseparableMatrices: LowRankMatrix, LayoutMatrix
-
-export BandedPlusSemiseparableMatrix, BandedPlusSemiseparableQRPerturbedFactors, fast_qr!
-
 struct BandedPlusSemiseparableMatrix{T} <: LayoutMatrix{T}
     bands::BandedMatrix{T}
     lowerfill::LowRankMatrix{T} 
@@ -63,6 +54,9 @@ struct BandedPlusSemiseparableQRPerturbedFactors{T} <: LayoutMatrix{T}
 
     j::Base.RefValue{Int} # how many columns have been upper-triangulised
 end
+
+BandedPlusSemiseparableMatrix(A::BandedPlusSemiseparableQRPerturbedFactors) = BandedPlusSemiseparableMatrix(A.B, (A.U,A.V), (A.W,A.S))
+BandedPlusSemiseparableQRPerturbedFactors(A::BandedPlusSemiseparableMatrix) = BandedPlusSemiseparableQRPerturbedFactors(copy(A.lowerfill.args[1]), copy(A.lowerfill.args[2]'), copy(A.upperfill.args[1]), copy(A.upperfill.args[2]'), copy(A.bands))
 
 size(A::BandedPlusSemiseparableQRPerturbedFactors) = (A.n,A.n)
 axes(A::BandedPlusSemiseparableQRPerturbedFactors) = (1:A.n, 1:A.n)
@@ -131,11 +125,12 @@ function getindex(A::BandedPlusSemiseparableQRPerturbedFactors, k::Integer, i::I
     end
 end
 
-function fast_qr!(A)
+
+function qr!(A::BandedPlusSemiseparableQRPerturbedFactors)
     n = A.n
     τ = zeros(n)
     if A.j[] != 0
-        throw(Exception("Matrix has already been partially upper-triangularized"))
+        throw(ErrorException("Matrix has already been partially upper-triangularized"))
     end
 
     UᵀU = UᵀU_lookup_table(A)
@@ -149,7 +144,12 @@ function fast_qr!(A)
     A.B[n,n] = A[n,n]
     A.j[] += 1
 
-    τ
+    QR(A, τ)
+end
+
+function qr(A::BandedPlusSemiseparableMatrix)
+    F = qr!(BandedPlusSemiseparableQRPerturbedFactors(A))
+    QR(BandedPlusSemiseparableMatrix(F.factors), F.τ)
 end
 
 function onestep_qr!(A, τ, UᵀU, ūw̄_sum, d_extra)
@@ -344,7 +344,7 @@ function ūw̄_sum_lookup_table(A)
 end
 
 function d_extra_lookup_table(A)
-    d_extra = Vector{Any}()
+    d_extra = Vector{Matrix{eltype(A)}}()
     for i in 1:A.n
         d_extra_current = zeros(A.r, min(A.m, A.n-i))
         for t in max(1,i+1-A.m) : i-1
@@ -371,6 +371,4 @@ function fast_UᵀA(U, V, W, S, B, j)
         UᵀW += U[i,:] * (W[i,:])'
     end
     UᵀA
-end
-
 end
