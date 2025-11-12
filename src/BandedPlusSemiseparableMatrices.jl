@@ -59,7 +59,6 @@ BandedPlusSemiseparableMatrix(A::BandedPlusSemiseparableQRPerturbedFactors) = Ba
 BandedPlusSemiseparableQRPerturbedFactors(A::BandedPlusSemiseparableMatrix) = BandedPlusSemiseparableQRPerturbedFactors(copy(A.lowerfill.args[1]), copy(A.lowerfill.args[2]'), copy(A.upperfill.args[1]), copy(A.upperfill.args[2]'), copy(A.bands))
 
 size(A::BandedPlusSemiseparableQRPerturbedFactors) = (A.n,A.n)
-axes(A::BandedPlusSemiseparableQRPerturbedFactors) = (1:A.n, 1:A.n)
 
 function BandedPlusSemiseparableQRPerturbedFactors(U,V,W,S,B)
     n = size(U,1)

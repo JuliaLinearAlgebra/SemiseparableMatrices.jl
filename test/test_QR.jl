@@ -1,5 +1,5 @@
-using BandedMatrices, Test, LinearAlgebra, Random, SemiseparableMatrices
-using SemiseparableMatrices: BandedPlusSemiseparableMatrix, BandedPlusSemiseparableQRPerturbedFactors, onestep_qr!
+using BandedMatrices, LinearAlgebra, Random, SemiseparableMatrices, Test
+using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
 #Random.seed!(1234)
 
 @testset "QR" begin
@@ -17,7 +17,7 @@ using SemiseparableMatrices: BandedPlusSemiseparableMatrix, BandedPlusSemisepara
         @test fact_true.τ ≈ fact.τ
     end
 
-    @test "BandedPlusSemiseparableMatrix" begin
+    @testset "BandedPlusSemiseparableMatrix" begin
         U,V = randn(n,r), randn(n,r)
         W,S = randn(n,p), randn(n,p)
         A = BandedPlusSemiseparableMatrix(B,(U,V),(W,S))

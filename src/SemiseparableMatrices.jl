@@ -2,7 +2,7 @@ module SemiseparableMatrices
 using LinearAlgebra: BlasFloat
 using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, Base
 
-import Base: size, getindex, setindex!, convert, copyto!, copy
+import Base: size, getindex, setindex!, convert, copyto!, copy, axes
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR, QRPackedQLayout, AdjQRPackedQLayout
 import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank
 import BandedMatrices: _banded_qr!, bandeddata, resize
