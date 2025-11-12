@@ -125,19 +125,18 @@ function getindex(A::BandedPlusSemiseparableQRPerturbedFactors, k::Integer, i::I
 end
 
 
-function qr!(A::BandedPlusSemiseparableQRPerturbedFactors)
-    n = A.n
-    τ = zeros(n)
+function qr!(A::BandedPlusSemiseparableQRPerturbedFactors{T}) where T
     if A.j[] != 0
         throw(ErrorException("Matrix has already been partially upper-triangularized"))
     end
 
-    UᵀU = UᵀU_lookup_table(A)
-    ūw̄_sum = ūw̄_sum_lookup_table(A)
-    d_extra = d_extra_lookup_table(A)
+    bandedplussemi_qr!(A,  zeros(T,A.n), UᵀU_lookup_table(A), ūw̄_sum_lookup_table(A), d_extra_lookup_table(A))
+end
 
+function bandedplussemi_qr!(A, τ, tables...)
+    n = A.n
     for i in 1 : n-1
-        onestep_qr!(A, τ, UᵀU, ūw̄_sum, d_extra)
+        onestep_qr!(A, τ, tables...)
     end
 
     A.B[n,n] = A[n,n]
