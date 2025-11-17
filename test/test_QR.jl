@@ -10,7 +10,7 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
     @testset "BandedPlusSemiseparableQRPerturbedFactors" begin
         U,V = randn(n,r), randn(n,r)
         W,S = randn(n,p), randn(n,p)
-        A = BandedPlusSemiseparableQRPerturbedFactors(U,V,W,S,B)
+        A = BandedPlusSemiseparableQRPerturbedFactors(B, (U,V), (W,S))
         fact_true = LinearAlgebra.qrfactUnblocked!(Matrix(A))
         fact = qr!(A)
         @test A ≈ fact_true.factors ≈ fact.factors
