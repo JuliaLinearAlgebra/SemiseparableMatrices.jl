@@ -11,7 +11,7 @@ function BandedPlusSemiseparableMatrix(B, (U,V), (W,S))
     if size(U,1) == size(V,1) == size(W,1) == size(S,1) == size(B,1) == size(B,2) && size(U,2) == size(V,2) && size(W,2) == size(S,2)
         BandedPlusSemiseparableMatrix(B, U, V, W, S)
     else
-        throw(ErrorException("Dimensions not match!"))
+throw(DimensionMismatch("Dimensions are not compatible."))
     end
 end
 
