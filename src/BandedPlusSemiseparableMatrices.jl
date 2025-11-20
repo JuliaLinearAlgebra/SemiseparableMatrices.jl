@@ -136,7 +136,7 @@ function qr!(A::BandedPlusSemiseparableQRPerturbedFactors{T}) where T
         throw(ErrorException("Matrix has already been partially upper-triangularized"))
     end
 
-    bandedplussemi_qr!(A,  zeros(T,size(A.B, 1)), UᵀU_lookup_table(A), ūw̄_sum_lookup_table(A), d_extra_lookup_table(A))
+    bandedplussemi_qr!(A,  zeros(T,size(A, 1)), UᵀU_lookup_table(A), ūw̄_sum_lookup_table(A), d_extra_lookup_table(A))
 end
 
 function bandedplussemi_qr!(A, τ, tables...)
