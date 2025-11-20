@@ -140,7 +140,7 @@ function qr!(A::BandedPlusSemiseparableQRPerturbedFactors{T}) where T
 end
 
 function bandedplussemi_qr!(A, τ, tables...)
-    n = size(A.B, 1)
+    n = size(A, 1)
     for i in 1 : n-1
         onestep_qr!(A, τ, tables...)
     end
