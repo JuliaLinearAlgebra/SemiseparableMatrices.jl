@@ -1,13 +1,13 @@
 struct BandedPlusSemiseparableMatrix{T} <: LayoutMatrix{T}
     # representing B + tril(UV', -1) + triu(WS', 1)
-    B::BandedMatrix{T} 
-    U::Matrix{T} 
-    V::Matrix{T} 
-    W::Matrix{T} 
-    S::Matrix{T} 
+    B::BandedMatrix{T}
+    U::Matrix{T}
+    V::Matrix{T}
+    W::Matrix{T}
+    S::Matrix{T}
 end
 
-function BandedPlusSemiseparableMatrix(B, (U,V), (W,S)) 
+function BandedPlusSemiseparableMatrix(B, (U,V), (W,S))
     if size(U,1) == size(V,1) == size(W,1) == size(S,1) == size(B,1) == size(B,2) && size(U,2) == size(V,2) && size(W,2) == size(S,2)
         BandedPlusSemiseparableMatrix(B, U, V, W, S)
     else
@@ -19,7 +19,7 @@ size(A::BandedPlusSemiseparableMatrix) = size(A.B)
 copy(A::BandedPlusSemiseparableMatrix) = A # not mutable
 
 function getindex(A::BandedPlusSemiseparableMatrix, k::Integer, j::Integer)
-    if j > k 
+    if j > k
         view(A.W, k, :)' * view(A.S, j, :) + A.B[k,j]
     elseif k > j
         view(A.U, k, :)' * view(A.V, j, :) + A.B[k,j]
@@ -68,7 +68,7 @@ function BandedPlusSemiseparableQRPerturbedFactors(B, (U,V), (W,S))
         n, r = size(U)
         p = size(W,2)
         l, m = bandwidths(B)
-        A = tril(U*V',-1) + B + triu(W*S',1)
+        # A = tril(U*V',-1) + B + triu(W*S',1)
         AᵀU = (fast_UᵀA(U, V, W, S, B, 1))'
         BandedPlusSemiseparableQRPerturbedFactors(BandedMatrix(B,(l,l+m)),U,V,[W zeros(n,r)],[S AᵀU],
             zeros(r,p),zeros(r,r),zeros(r,min(l+m,n)),zeros(min(l,n),p),zeros(min(l,n),r),zeros(min(l,n),min(l+m,n)),Ref(0))
@@ -117,7 +117,7 @@ function getindex(A::BandedPlusSemiseparableQRPerturbedFactors, k::Integer, i::I
             elseif i <= j + l + m
                 A.B[k,i] + UQ * view(A.S, i, 1:p) + UK * view(AᵀU, i-j, :) + view(A.U, k, :)' * view(A.Eₛ, :, i-j)
             else
-                A.B[k,i] + UQ * view(A.S, i, 1:p) + UK * view(AᵀU, i-j, :) 
+                A.B[k,i] + UQ * view(A.S, i, 1:p) + UK * view(AᵀU, i-j, :)
             end
         end
     else
@@ -167,7 +167,7 @@ function onestep_qr!(A, τ, UᵀU, ūw̄_sum, d_extra)
     Xₛ_prev = copy(A.Xₛ)
     Yₛ_prev = copy(A.Yₛ)
     Zₛ_prev = copy(A.Zₛ)
-    
+
     update_next_submatrix!(A, k̄, b, τ_current, w̄₁, ū₁, d₁, f, d̄, c₁, c₂, c₃, c₄, c₅, c₆, Q_prev, K_prev, Eₛ_prev, Xₛ_prev, Yₛ_prev, Zₛ_prev)
     update_upper_triangular_part!(A, k̄, b, τ_current, w̄₁, ū₁, d₁, f, d̄, c₁, c₂, c₃, c₄, c₅, c₆, Q_prev, K_prev, Eₛ_prev, Xₛ_prev, Yₛ_prev, Zₛ_prev, ūw̄_sum, d_extra)
     update_lower_triangular_part!(A, pivot_new, k̄, b)
@@ -207,7 +207,7 @@ function compute_Householder_vector(A, UᵀU)
     # compute the length square of A[j+1:end,j+1]
     len_square = pivot^2 + k̄' * view(UᵀU, j+2, :, :) * k̄
     if l > 0
-        len_square += k̄' * (view(A.U, j+2:j+1+length(b), :))' * b + b' * view(A.U, j+2:j+1+length(b), :) * k̄ + b'b 
+        len_square += k̄' * (view(A.U, j+2:j+1+length(b), :))' * b + b' * view(A.U, j+2:j+1+length(b), :) * k̄ + b'b
     end
 
     pivot_new = -sign(pivot) * sqrt(len_square) # the element on the diagonal after HT
@@ -263,10 +263,21 @@ function compute_variables_c(A, k̄, b, UᵀU)
     c₁, c₂, c₃, c₄, c₅, c₆
 end
 
-function update_next_submatrix!(A, k̄, b, τ, w̄₁, ū₁, d₁, f, d̄, c₁, c₂, c₃, c₄, c₅, c₆, Q_prev, K_prev, Eₛ_prev, Xₛ_prev, Yₛ_prev, Zₛ_prev)  
-    A.Q[:,:] = -τ*k̄*w̄₁' - τ*k̄*f' + Q_prev - τ*k̄*c₁' + K_prev*ū₁*w̄₁'-
-                τ*k̄*c₂'*ū₁*w̄₁' - τ*k̄*c₄' - τ*k̄*c₅'*ū₁*w̄₁'
-    A.K[:,:] = -τ*k̄*k̄' + K_prev - τ*k̄*c₂' - τ*k̄*c₅'
+function update_next_submatrix!(A::AbstractMatrix{T}, k̄, b, τ, w̄₁, ū₁, d₁, f, d̄, c₁, c₂, c₃, c₄, c₅, c₆, Q_prev, K_prev, Eₛ_prev, Xₛ_prev, Yₛ_prev, Zₛ_prev) where T
+    # A.Q .= -τ*k̄*w̄₁' - τ*k̄*f' + Q_prev - τ*k̄*c₁' + K_prev*ū₁*w̄₁'-
+    #             τ*k̄*c₂'*ū₁*w̄₁' - τ*k̄*c₄' - τ*k̄*c₅'*ū₁*w̄₁'
+    mul!(A.Q, k̄, w̄₁', -τ, one(T))
+    mul!(A.Q, k̄, f', -τ, one(T))
+    mul!(A.Q, k̄, c₁', -τ, one(T))
+    mul!(A.Q, K_prev, ū₁*w̄₁', one(T), one(T)) # TODO: write to tem buffer?
+    mul!(A.Q, k̄, w̄₁', -τ*(c₂'*ū₁+c₅'*ū₁), one(T))
+    mul!(A.Q, k̄, c₄', -τ, one(T))
+
+
+
+
+
+    A.K .= -τ*k̄*k̄' + K_prev - τ*k̄*c₂' - τ*k̄*c₅'
 
     A.Eₛ[:,1:length(d̄)-1] = -τ*k̄*(view(d̄, 2:length(d̄)))'
     A.Eₛ[:,1:length(d₁)-1] .+= (-τ*k̄ + K_prev*ū₁ - τ*k̄*c₂'*ū₁ - τ*k̄*c₅'*ū₁)*(view(d₁, 2:length(d₁)))'
@@ -331,7 +342,7 @@ function update_lower_triangular_part!(A, pivot, k̄, b)
 end
 
 function UᵀU_lookup_table(A)
-    n, r = size(A.U) 
+    n, r = size(A.U)
     UᵀU = zeros(eltype(A), n, r, r)
     UᵀU_current = zeros(eltype(A), r, r)
     for i in n:-1:1
