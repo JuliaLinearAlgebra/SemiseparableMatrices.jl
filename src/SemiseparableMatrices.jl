@@ -2,9 +2,9 @@ module SemiseparableMatrices
 using LinearAlgebra: BlasFloat
 using ArrayLayouts, BandedMatrices, LazyArrays, LinearAlgebra, MatrixFactorizations, Base
 
-import Base: size, getindex, setindex!, convert, copyto!, copy, axes
+import Base: size, getindex, setindex!, convert, copyto!, copy, axes, getproperty
 import MatrixFactorizations: QR, QRPackedQ, getQ, getR, QRPackedQLayout, AdjQRPackedQLayout
-import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank
+import LinearAlgebra: qr, qr!, lmul!, ldiv!, rmul!, triu!, factorize, rank, AdjointQ
 import BandedMatrices: _banded_qr!, bandeddata, resize
 import LazyArrays: arguments, applylayout, _cache, CachedArray, CachedMatrix, ApplyLayout, resizedata!, PaddedRows
 import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, materialize!, triangularlayout, 
@@ -30,6 +30,7 @@ separablerank(A) = size(arguments(ApplyLayout{typeof(*)}(),A)[1],2)
 include("SemiseparableMatrix.jl")
 include("AlmostBandedMatrix.jl")
 include("invbanded.jl")
-include("BandedPlusSemiseparableMatrices.jl")
+include("BandedPlusSemiseparableMatrix.jl")
+include("semiseparableqr.jl")
 
 end # module

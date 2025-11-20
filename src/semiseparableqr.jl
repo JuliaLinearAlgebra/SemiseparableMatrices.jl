@@ -1,33 +1,3 @@
-struct BandedPlusSemiseparableMatrix{T} <: LayoutMatrix{T}
-    # representing B + tril(UV', -1) + triu(WS', 1)
-    B::BandedMatrix{T}
-    U::Matrix{T}
-    V::Matrix{T}
-    W::Matrix{T}
-    S::Matrix{T}
-end
-
-function BandedPlusSemiseparableMatrix(B, (U,V), (W,S))
-    if size(U,1) == size(V,1) == size(W,1) == size(S,1) == size(B,1) == size(B,2) && size(U,2) == size(V,2) && size(W,2) == size(S,2)
-        BandedPlusSemiseparableMatrix(B, U, V, W, S)
-    else
-throw(DimensionMismatch("Dimensions are not compatible."))
-    end
-end
-
-size(A::BandedPlusSemiseparableMatrix) = size(A.B)
-copy(A::BandedPlusSemiseparableMatrix) = A # not mutable
-
-function getindex(A::BandedPlusSemiseparableMatrix, k::Integer, j::Integer)
-    if j > k
-        view(A.W, k, :)' * view(A.S, j, :) + A.B[k,j]
-    elseif k > j
-        view(A.U, k, :)' * view(A.V, j, :) + A.B[k,j]
-    else
-        A.B[k,j]
-    end
-end
-
 """
 Represents factors matrix for QR for banded+semiseparable. we have
 
@@ -42,7 +12,7 @@ Represents factors matrix for QR for banded+semiseparable. we have
 """
 
 struct BandedPlusSemiseparableQRPerturbedFactors{T} <: LayoutMatrix{T}
-    B::BandedMatrix{T} # lower bandwidth l and upper bandwidth l + m
+    B::BandedMatrix{T, Matrix{T}, Base.OneTo{Int}} # lower bandwidth l and upper bandwidth l + m
     U::Matrix{T} # n × r
     V::Matrix{T} # n × r
     W::Matrix{T} # n × (p+r)
@@ -394,4 +364,28 @@ function fast_UᵀA(U, V, W, S, B, j)
         UᵀW .+= view(U, i, :) * (view(W, i, :))'
     end
     UᵀA
+end
+
+
+
+###
+# Support ldiv!
+###
+
+function getproperty(F::QR{<:Any,<:BandedPlusSemiseparableMatrix}, d::Symbol)
+    m, n = size(F)
+    if d === :R
+        return UpperTriangular(getfield(F, :factors))
+    elseif d === :Q
+        return QRPackedQ(getfield(F, :factors), F.τ)
+    else
+        getfield(F, d)
+    end
+end
+
+function lmul!(adjQ::AdjointQ{<:Any,<:QRPackedQ{<:Any,<:BandedPlusSemiseparableMatrix}}, B::StridedVector)
+    Q = parent(adjQ)
+    factors = Q.factors
+    τ = Q.τ
+    error("implement")
 end

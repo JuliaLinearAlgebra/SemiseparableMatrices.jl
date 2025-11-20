@@ -11,8 +11,9 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
         U,V = randn(n,r), randn(n,r)
         W,S = randn(n,p), randn(n,p)
         A = BandedPlusSemiseparableQRPerturbedFactors(B, (U,V), (W,S))
+        @test @inferred(size(A)) == (20,20)
         fact_true = LinearAlgebra.qrfactUnblocked!(Matrix(A))
-        fact = qr!(A)
+        fact = @inferred(qr!(A))
         @test A ≈ fact_true.factors ≈ fact.factors
         @test fact_true.τ ≈ fact.τ
     end
@@ -27,5 +28,11 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
         @test A ≈ A_true
         @test fact_true.factors ≈ fact.factors
         @test fact_true.τ ≈ fact.τ
+
+        b = randn(n)
+        Q,R = fact
+
+        lmul!(Q',b)
+        ldiv!(R, b)
     end
 end
