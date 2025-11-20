@@ -32,6 +32,8 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
         b = randn(n)
         Q,R = fact
 
+        @test R ≡ UpperTriangular(fact.factors)
+
         lmul!(Q',b)
         ldiv!(R, b)
     end
