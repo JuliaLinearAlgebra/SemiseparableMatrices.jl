@@ -11,7 +11,7 @@ function BandedPlusSemiseparableMatrix(B, (U,V), (W,S))
     if size(U,1) == size(V,1) == size(W,1) == size(S,1) == size(B,1) == size(B,2) && size(U,2) == size(V,2) && size(W,2) == size(S,2)
         BandedPlusSemiseparableMatrix(B, U, V, W, S)
     else
-        throw(ErrorException("Dimensions not match!"))
+throw(DimensionMismatch("Dimensions are not compatible."))
     end
 end
 
@@ -136,11 +136,11 @@ function qr!(A::BandedPlusSemiseparableQRPerturbedFactors{T}) where T
         throw(ErrorException("Matrix has already been partially upper-triangularized"))
     end
 
-    bandedplussemi_qr!(A,  zeros(T,size(A.B, 1)), UᵀU_lookup_table(A), ūw̄_sum_lookup_table(A), d_extra_lookup_table(A))
+    bandedplussemi_qr!(A,  zeros(T,size(A, 1)), UᵀU_lookup_table(A), ūw̄_sum_lookup_table(A), d_extra_lookup_table(A))
 end
 
 function bandedplussemi_qr!(A, τ, tables...)
-    n = size(A.B, 1)
+    n = size(A, 1)
     for i in 1 : n-1
         onestep_qr!(A, τ, tables...)
     end
