@@ -1,6 +1,6 @@
 using BandedMatrices, LinearAlgebra, Random, SemiseparableMatrices, Test
 using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
-#Random.seed!(1234)
+Random.seed!(1234)
 
 @testset "QR" begin
     n = 20
@@ -34,7 +34,19 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
 
         @test R ≡ UpperTriangular(fact.factors)
 
-        lmul!(Q',b)
-        ldiv!(R, b)
+        res = lmul!(Q',b)
+        println(res)
+        F = fact.factors
+        τ = fact.τ
+        for i = 1 : n-1
+            y = zeros(n)
+            y[i] = 1
+            y[i+1:n] = F[i+1:n, i]
+            b = (I-τ[i]*y*y')*b
+        end
+        @test b ≈ res
+        #x = R \ b
+        #ldiv!(R, b)
+        #@test x ≈ b
     end
 end

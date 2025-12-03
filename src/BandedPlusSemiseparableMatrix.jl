@@ -29,5 +29,18 @@ function getindex(A::BandedPlusSemiseparableMatrix, k::Integer, j::Integer)
 end
 
 function ldiv!(R::UpperTriangular{<:Any,<:BandedPlusSemiseparableMatrix}, b::StridedVector)
-    error("implement fast back substitution")
+    F = parent(R)
+    n, p = size(F.W)
+    l, m = bandwidths(F.B)
+    T = eltype(F.S)
+    sx = zeros(T, p)
+    for j = n : -1 : 1
+        residual = view(F.W, j, :)' * sx 
+        for k = j+1 : min(j+m, n)
+            residual += F.B[j, k] * b[k]
+        end
+        b[j] = (b[j] - residual) / F.B[j, j]
+        #sx += F.S[j, :] * b[j]
+        mul!(sx, I, view(F.S, j, :), b[j], one(T))
+    end
 end
