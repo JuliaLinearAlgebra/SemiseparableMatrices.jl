@@ -65,4 +65,6 @@ function ldiv!(R::UpperTriangular{<:Any,<:BandedPlusSemiseparableMatrix}, b::Str
         #sx += F.S[j, :] * b[j]
         mul!(sx, I, view(F.S, j, :), b[j], one(T))
     end
+
+    return b
 end
