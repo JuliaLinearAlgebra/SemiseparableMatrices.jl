@@ -13,5 +13,6 @@ using SemiseparableMatrices, Test
     @test_broken A[1:10,1:10] isa BandedPlusSemiseparableMatrix
 
     b = randn(n)
+    @test A*b ≈ Matrix(A)*b
     @test ldiv!(UpperTriangular(A), copy(b)) ≈ UpperTriangular(Matrix(A)) \ b
 end

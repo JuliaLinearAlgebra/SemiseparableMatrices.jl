@@ -18,7 +18,7 @@ end
 size(A::BandedPlusSemiseparableMatrix) = size(A.B)
 copy(A::BandedPlusSemiseparableMatrix) = A # not mutable
 
-function mul(A::BandedPlusSemiseparableMatrix, b::StridedVector)
+function Base.:*(A::BandedPlusSemiseparableMatrix, b::AbstractVector)
     n, r = size(A.U)
     l, m = bandwidths(A.B)
     T = eltype(A.U)
@@ -31,11 +31,11 @@ function mul(A::BandedPlusSemiseparableMatrix, b::StridedVector)
             Bb += A.B[k, j] * b[j]
         end
         #Sᵀb -= A.S[k, :] * b[k]
-        Sᵀb -= view(A.S, k, :) * b[k]
+        mul!(Sᵀb, I, view(A.S, k, :), -b[k], one(T))
         #res[k] = A.U[k, :]' * Vᵀb + Bb + A.W[k, :]' * Sᵀb
         res[k] = view(A.U, k, :)' * Vᵀb + Bb + view(A.W, k, :)' * Sᵀb
         #Vᵀb += A.V[k, :] * b[k]
-        Vᵀb += view(A.V, k, :) * b[k]
+        mul!(Vᵀb, I, view(A.V, k, :), b[k], one(T))
     end
     res
 end
