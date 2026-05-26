@@ -68,3 +68,36 @@ function ldiv!(R::UpperTriangular{<:Any,<:BandedPlusSemiseparableMatrix}, b::Str
 
     return b
 end
+
+
+####
+## Next are related to Symmetric BPS matrices
+####
+
+struct SymmetricBPSMatrix{T} <: LayoutMatrix{T}
+    # representing B + tril(UV', -1) + triu(V'U, 1) where B is symmetric banded
+    B::Symmetric{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}} 
+    U::Matrix{T}
+    V::Matrix{T}
+end
+
+function SymmetricBPSMatrix(B, (U,V))
+    if size(U,1) == size(V,1) == size(B,1) == size(B,2) && size(U,2) == size(V,2)
+        SymmetricBPSMatrix(B, U, V)
+    else
+        throw(DimensionMismatch("Dimensions are not compatible."))
+    end
+end
+
+size(A::SymmetricBPSMatrix) = size(A.B)
+copy(A::SymmetricBPSMatrix) = A # not mutable
+
+function getindex(A::SymmetricBPSMatrix, k::Integer, j::Integer)
+    if k > j
+        view(A.U, k, :)' * view(A.V, j, :) + A.B[k,j]
+    elseif j > k
+        view(A.U, j, :)' * view(A.V, k, :) + A.B[k,j]
+    else
+        A.B[k,j]
+    end
+end

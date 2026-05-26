@@ -12,6 +12,7 @@ import ArrayLayouts: MemoryLayout, sublayout, sub_materialize, MatLdivVec, mater
                         _qr, _qr!, _factorize
 
 export SemiseparableMatrix, AlmostBandedMatrix, LowRankMatrix, ApplyMatrix, ApplyArray, almostbandwidths, almostbandedrank, BandedPlusSemiseparableMatrix
+export SymmetricBPSMatrix, SymmetricBPSHessenbergPerturbedFactors, SymmetricBPSPerturbedRQForTridiag
 
 LazyArraysBandedMatricesExt = Base.get_extension(LazyArrays, :LazyArraysBandedMatricesExt)
 BandedLayouts = LazyArraysBandedMatricesExt.BandedLayouts
