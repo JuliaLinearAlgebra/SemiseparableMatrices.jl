@@ -51,5 +51,7 @@ using SemiseparableMatrices: BandedPlusSemiseparableQRPerturbedFactors
         x = triu(F) \ b
         ldiv!(R, b)
         @test b ≈ x
+
+        @test F \ b_true ≈ x
     end
 end

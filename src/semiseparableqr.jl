@@ -860,7 +860,8 @@ function getproperty(F::QR{<:Any,<:BandedPlusSemiseparableMatrix}, d::Symbol)
     end
 end
 
-function lmul!(adjQ::AdjointQ{<:Any,<:QRPackedQ{<:Any,<:BandedPlusSemiseparableMatrix}}, b::StridedVector)
+function ArrayLayouts.lmul!(adjQ::AdjointQ{<:Any,<:QRPackedQ{<:Any,<:BandedPlusSemiseparableMatrix}}, b::StridedVecOrMat)
+    @assert b isa AbstractVector
     Q = parent(adjQ)
     F = Q.factors
     τ = Q.τ
@@ -902,6 +903,7 @@ function lmul!(adjQ::AdjointQ{<:Any,<:QRPackedQ{<:Any,<:BandedPlusSemiseparableM
     end
     #b[n] += F.U[n,:]'*h
     b[n] += view(F.U, n, :)' * h
+    b
 end
 
 function Uᵀb_lookup_table(F, b)
