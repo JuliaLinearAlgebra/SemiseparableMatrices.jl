@@ -50,7 +50,8 @@ function getindex(A::BandedPlusSemiseparableMatrix, k::Integer, j::Integer)
     end
 end
 
-function ldiv!(R::UpperTriangular{<:Any,<:BandedPlusSemiseparableMatrix}, b::StridedVector)
+function ArrayLayouts.ldiv!(R::UpperTriangular{<:Any,<:BandedPlusSemiseparableMatrix}, b::StridedVecOrMat)
+    @assert b isa AbstractVector
     F = parent(R)
     n, p = size(F.W)
     l, m = bandwidths(F.B)
